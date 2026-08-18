@@ -22,5 +22,9 @@ The agent expects an Ollama-compatible chat endpoint configured via `AgentChatOp
 
 ```bash
 dotnet test                      # offline, deterministic checks
-EVAL_LIVE_MODEL=1 dotnet test    # also runs the checks against a live model
+EVAL_LIVE_MODEL=1 dotnet test    # also measures the agent against a live model
 ```
+
+The live tier samples each check over many runs and judges it against a floor rather than
+requiring every run to pass, and writes a JSON report per run. See the
+[suite README](tests/Agents.Api.Evals/README.md) for how the floors and confidence bounds work.

@@ -58,8 +58,18 @@ internal static class EvalAgentFactory
     public static bool LiveModelEnabled =>
         Environment.GetEnvironmentVariable("EVAL_LIVE_MODEL") is "1" or "true";
 
-    private static string LiveModel =>
+    /// <summary>The model under evaluation. Recorded in reports so runs stay comparable.</summary>
+    public static string LiveModel =>
         Environment.GetEnvironmentVariable("EVAL_OLLAMA_MODEL") ?? "qwen3.5";
+
+    /// <summary>
+    /// Runs per query in the live suite. Rate gating needs a real sample — the default of 30 is
+    /// enough for a flawless run to clear an 80% floor with room to absorb one miss.
+    /// </summary>
+    public static int SampleSize =>
+        int.TryParse(Environment.GetEnvironmentVariable("EVAL_SAMPLE_SIZE"), out var size) && size > 0
+            ? size
+            : 30;
 
     private static string LiveBaseUrl =>
         Environment.GetEnvironmentVariable("EVAL_OLLAMA_BASEURL") ?? "http://localhost:11434";
