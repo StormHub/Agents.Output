@@ -7,7 +7,8 @@ Migrated from [StormHub/Agents.Resources](https://github.com/StormHub/Agents.Res
 ## Structure
 
 - `src/Agents.Api`: ASP.NET Core API host exposing the chat agent over `/chat` (AG-UI) with a `CalendarDay` and `WeatherForecast` tool.
-- `Agents.sln`: solution file referencing the projects under `src`.
+- `tests/Agents.Api.Evals`: agent evaluation suite — see its [README](tests/Agents.Api.Evals/README.md).
+- `Agents.sln`: solution file referencing the projects under `src` and `tests`.
 
 ## Running
 
@@ -16,3 +17,10 @@ dotnet run --project src/Agents.Api
 ```
 
 The agent expects an Ollama-compatible chat endpoint configured via `AgentChatOptions` (`Model`, `BaseUrl`) in `appsettings.json` or user secrets.
+
+## Evaluating
+
+```bash
+dotnet test                      # offline, deterministic checks
+EVAL_LIVE_MODEL=1 dotnet test    # also runs the checks against a live model
+```
