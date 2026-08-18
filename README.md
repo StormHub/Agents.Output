@@ -26,5 +26,13 @@ EVAL_LIVE_MODEL=1 dotnet test    # also measures the agent against a live model
 ```
 
 The live tier samples each check over many runs and judges it against a floor rather than
-requiring every run to pass, and writes a JSON report per run. See the
-[suite README](tests/Agents.Api.Evals/README.md) for how the floors and confidence bounds work.
+requiring every run to pass. Results are stored in `Microsoft.Extensions.AI.Evaluation.Reporting`
+format, so runs accumulate a history:
+
+```bash
+dotnet tool restore
+dotnet aieval report --output eval-report.html
+```
+
+See the [suite README](tests/Agents.Api.Evals/README.md) for how the floors, confidence bounds
+and result store fit together.

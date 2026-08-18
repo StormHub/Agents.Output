@@ -1,8 +1,10 @@
 # Agents.Api.Evals
 
 Evaluation suite for the weather agent, built on the evaluation API that ships inside
-`Microsoft.Agents.AI` (no extra package — `Microsoft.Extensions.AI.Evaluation` arrives
-transitively).
+`Microsoft.Agents.AI` — the checks themselves need no extra package, since
+`Microsoft.Extensions.AI.Evaluation` arrives transitively.
+`Microsoft.Extensions.AI.Evaluation.Reporting` is added on top for result storage and HTML
+reports; see [Reporting](#reporting).
 
 ## Why these checks
 
@@ -44,7 +46,9 @@ EVAL_LIVE_MODEL=1 dotnet test tests/Agents.Api.Evals
 | `EVAL_OLLAMA_MODEL` | `qwen3.5` |
 | `EVAL_OLLAMA_BASEURL` | `http://localhost:11434` |
 | `EVAL_SAMPLE_SIZE` | `30` runs per query |
+| `EVAL_STORE_DIR` | `eval-store/` beside the test binary |
 | `EVAL_REPORT_DIR` | `eval-reports/` beside the test binary |
+| `EVAL_EXECUTION_NAME` | `local-<timestamp>` |
 
 A full live run makes several hundred model calls. That is the cost of measuring a rate, and it
 is why this belongs on a schedule rather than on every pull request.
@@ -82,16 +86,67 @@ This makes the sample-size requirement explicit: for a flawless sample the bound
 `n / (n + z²)`, so an 80% floor needs at least 16 runs and a 90% floor needs 35.
 `EvalGate.MinimumSampleFor(floor)` computes it.
 
-**A report, not just a verdict.** Every live run writes JSON to `EVAL_REPORT_DIR` with per-check
-counts, observed rates, lower bounds and floors. A pass/fail answers "should this build go red";
-it does not answer "is the agent getting better or worse", which is what evaluation is for. The
-report is the deliverable and the gate is a side effect. For a fuller history and HTML reporting,
-`Microsoft.Extensions.AI.Evaluation.Reporting` (`ReportingConfiguration`, `ScenarioRun`,
-`DiskBasedResultStore`) consumes the same MEAI `EvaluationResult` these results are built from.
+**A report, not just a verdict.** A pass/fail answers "should this build go red"; it does not
+answer "is the agent getting better or worse", which is what evaluation is for. So the gate is a
+side effect and the records are the deliverable. Each live run writes two, answering different
+questions — see below.
 
 **A missing check fails.** A floor naming a check the evaluator never emits — a typo, a renamed
 check — is reported as a violation rather than passing silently, so the gate can't quietly become
 weaker than it looks.
+
+## Reporting
+
+Each live run writes two records:
+
+1. **The result store** (`EVAL_STORE_DIR`) — one `ScenarioRunResult` per evaluated item, in
+   `Microsoft.Extensions.AI.Evaluation.Reporting` format. This is the per-item history: full
+   conversation, tool calls, metrics.
+2. **A gate summary** (`EVAL_REPORT_DIR`) — the derived rates, lower bounds and floors, which
+   `ScenarioRunResult` has no schema slot for.
+
+Render the store:
+
+```bash
+dotnet tool restore
+dotnet aieval report --output eval-report.html      # see --help for the full options
+```
+
+By default the store lands beside the test binary (under `bin/`), which is awkward to point a
+tool at — so each run prints its absolute path and execution name in the test output. Set
+`EVAL_STORE_DIR` to somewhere stable if you intend to accumulate history, and `EVAL_EXECUTION_NAME`
+to the CI build number so executions line up run to run.
+
+### How the store is written
+
+The idiomatic path is `ReportingConfiguration` → `ScenarioRun.EvaluateAsync` → dispose. **That
+path is closed to Agent Framework evaluators**: `ReportingConfiguration.Evaluators` takes MEAI's
+`IEvaluator`, which scores one item at a time, while `LocalEvaluator` implements
+`IAgentEvaluator`, which scores a batch. The framework ships `MeaiEvaluatorAdapter` to go from
+`IEvaluator` to `IAgentEvaluator` and nothing in the other direction, so a `LocalEvaluator` cannot
+be handed to a `ReportingConfiguration`.
+
+The two libraries do meet at MEAI's `EvaluationResult` — `AgentEvaluationResults.Items` is a list
+of them, and `ScenarioRunResult` has a public constructor that takes one. So `EvalResultStore`
+maps results and writes to `DiskBasedResultStore` directly, bypassing `ScenarioRun`. The stored
+records are ordinary ones; the report tool cannot tell how they got there.
+
+### The hierarchy lines up
+
+The store is organised **execution → scenario → iteration**, which is how the suite already runs:
+
+| Store concept | Here |
+|---|---|
+| Execution | One run of the suite (`EVAL_EXECUTION_NAME`, or a timestamp — set it to the CI build number so runs line up) |
+| Scenario | One query, as `{evalName}.q00` |
+| Iteration | One repetition — `numRepetitions: 30` becomes iterations `001`–`030` |
+
+Scenario names key off query text rather than item position, so the mapping does not depend on
+the order `EvaluateAsync` emits repetitions in. The execution name resolves once per process, so
+every scenario in a run shares it.
+
+If judge-based checks are added later, Reporting also brings `IEvaluationResponseCacheProvider`
+for caching LLM responses — which matters once each run makes judge calls at 30 repetitions.
 
 ## Two sharp edges in the framework
 

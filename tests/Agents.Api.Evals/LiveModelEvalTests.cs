@@ -137,11 +137,16 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
         var rates = EvalRates.PerCheck(results);
         var outcome = EvalGate.Evaluate(rates, effectiveFloors);
 
-        var path = EvalReport.Write(scenario, outcome, results, effectiveFloors, EvalAgentFactory.LiveModel);
+        // Two records, answering different questions. The store keeps every item so the report
+        // tool can show the trajectory and compare executions; the summary keeps the derived
+        // rates and bounds, which ScenarioRunResult has no place for.
+        var storePath = await EvalResultStore.WriteAsync(scenario, results, EvalAgentFactory.LiveModel);
+        var summaryPath = EvalReport.Write(scenario, outcome, results, effectiveFloors, EvalAgentFactory.LiveModel);
 
         output.WriteLine($"{scenario} — {results.Total} runs of {EvalAgentFactory.LiveModel}");
         output.WriteLine(outcome.Report());
-        output.WriteLine($"Report: {path}");
+        output.WriteLine($"Store:   {storePath} (execution {EvalResultStore.ExecutionName})");
+        output.WriteLine($"Summary: {summaryPath}");
 
         Assert.True(outcome.Passed, outcome.Report());
 
