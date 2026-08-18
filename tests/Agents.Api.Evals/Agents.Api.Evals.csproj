@@ -10,6 +10,14 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!--
+          Pinned to 10.7.0 to match the Microsoft.Extensions.AI.Evaluation version that
+          Microsoft.Agents.AI 1.17.0 pulls in, so the Evaluation family stays on one version.
+        -->
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="10.7.0" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
         <PackageReference Include="xunit.v3" Version="3.2.2" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />

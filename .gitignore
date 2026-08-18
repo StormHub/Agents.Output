@@ -405,3 +405,7 @@ FodyWeavers.xsd
 
 .next
 node_modules
+# Evaluation artifacts
+eval-store/
+eval-reports/
+eval-report.html
