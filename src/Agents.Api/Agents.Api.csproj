@@ -9,6 +9,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Agents.Api.Evals" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.Agents.AI" Version="1.17.0" />
         <PackageReference Include="Microsoft.Agents.AI.AGUI" Version="1.13.0-preview.260703.1" />
         <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.17.0-preview.260804.1" />

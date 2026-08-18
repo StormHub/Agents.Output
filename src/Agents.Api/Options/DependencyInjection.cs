@@ -7,9 +7,21 @@ namespace Agents.Api.Options;
 
 internal static class DependencyInjection
 {
+    internal const string AgentName = "WeatherChat";
+
+    internal const string AgentInstructions = "You are a helpful assistant that answers questions.";
+
     public static IServiceCollection AddAgent(this IServiceCollection services, IConfiguration configuration) =>
         services
             .AddAGUI()
+            .AddWeatherChatAgent(configuration);
+
+    /// <summary>
+    /// Registers the chat client and agent without the AG-UI hosting layer, so the agent can be
+    /// composed outside a web host (evaluation runs, tests).
+    /// </summary>
+    public static IServiceCollection AddWeatherChatAgent(this IServiceCollection services, IConfiguration configuration) =>
+        services
             .AddChatClient(configuration)
             .AddChatClientAgent();
 
@@ -43,14 +55,14 @@ internal static class DependencyInjection
 
             var chatOptions = new ChatOptions
             {
-                Instructions = "You are a helpful assistant that answers questions.",
+                Instructions = AgentInstructions,
                 Tools = tools,
             };
 
             return chatClient.AsAIAgent(
                 new ChatClientAgentOptions
                 {
-                    Name = "WeatherChat",
+                    Name = AgentName,
                     ChatOptions = chatOptions,
                 },
                 provider.GetRequiredService<ILoggerFactory>());
