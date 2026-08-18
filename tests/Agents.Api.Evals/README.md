@@ -112,6 +112,11 @@ dotnet tool restore
 dotnet aieval report --output eval-report.html      # see --help for the full options
 ```
 
+By default the store lands beside the test binary (under `bin/`), which is awkward to point a
+tool at — so each run prints its absolute path and execution name in the test output. Set
+`EVAL_STORE_DIR` to somewhere stable if you intend to accumulate history, and `EVAL_EXECUTION_NAME`
+to the CI build number so executions line up run to run.
+
 ### How the store is written
 
 The idiomatic path is `ReportingConfiguration` → `ScenarioRun.EvaluateAsync` → dispose. **That

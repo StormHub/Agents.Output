@@ -51,9 +51,13 @@ internal static class EvalReport
                         ?? Path.Combine(AppContext.BaseDirectory, "eval-reports");
         Directory.CreateDirectory(directory);
 
+        // One instant for both the record and its file name, so a report can be found from its
+        // own contents.
+        var writtenAt = DateTimeOffset.UtcNow;
+
         var record = new EvalRunRecord(
             scenario,
-            DateTimeOffset.UtcNow,
+            writtenAt,
             model,
             results.Total,
             [.. outcome.Rates.Select(rate =>
@@ -65,17 +69,21 @@ internal static class EvalReport
                     rate.Total,
                     Math.Round(rate.Observed, 4),
                     Math.Round(rate.LowerBound, 4),
-                    gated ? floor!.Floor : null,
+                    gated ? floor!.Floor : (double?)null,
                     gated);
             })],
             outcome.Violations);
 
         var path = Path.Combine(
             directory,
-            $"{scenario}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.json");
+            $"{Sanitize(scenario)}-{writtenAt:yyyyMMdd-HHmmss}.json");
 
         File.WriteAllText(path, JsonSerializer.Serialize(record, SerializerOptions));
 
         return path;
     }
+
+    /// <summary>Keeps a scenario name usable as a file name.</summary>
+    private static string Sanitize(string scenario) =>
+        string.Join("_", scenario.Split(Path.GetInvalidFileNameChars()));
 }
