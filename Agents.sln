@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.Api", "src\Agents.Ap
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.Api.Evals", "tests\Agents.Api.Evals\Agents.Api.Evals.csproj", "{87260E5A-90C0-483E-9DBA-BF48996717B1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.Extensions.Evals", "tests\Agents.Extensions.Evals\Agents.Extensions.Evals.csproj", "{3F1B9A64-8C2D-4E57-9A0B-5D6C71E8B412}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{87260E5A-90C0-483E-9DBA-BF48996717B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{87260E5A-90C0-483E-9DBA-BF48996717B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{87260E5A-90C0-483E-9DBA-BF48996717B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F1B9A64-8C2D-4E57-9A0B-5D6C71E8B412}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F1B9A64-8C2D-4E57-9A0B-5D6C71E8B412}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F1B9A64-8C2D-4E57-9A0B-5D6C71E8B412}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F1B9A64-8C2D-4E57-9A0B-5D6C71E8B412}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -8,6 +8,10 @@ Migrated from [StormHub/Agents.Resources](https://github.com/StormHub/Agents.Res
 
 - `src/Agents.Api`: ASP.NET Core API host exposing the chat agent over `/chat` (AG-UI) with a `CalendarDay` and `WeatherForecast` tool.
 - `tests/Agents.Api.Evals`: agent evaluation suite — see its [README](tests/Agents.Api.Evals/README.md).
+- `tests/Agents.Extensions.Evals`: the same weather scenario evaluated one layer down, as a plain
+  `Microsoft.Extensions.AI` chat pipeline graded by the `Microsoft.Extensions.AI.Evaluation`
+  libraries (NLP scores, LLM-judged quality, Azure AI Foundry content safety) — see its
+  [README](tests/Agents.Extensions.Evals/README.md).
 - `Agents.sln`: solution file referencing the projects under `src` and `tests`.
 
 ## Running

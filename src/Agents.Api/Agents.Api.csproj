@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Agents.Api.Evals" />
+        <InternalsVisibleTo Include="Agents.Extensions.Evals" />
     </ItemGroup>
 
     <ItemGroup>
