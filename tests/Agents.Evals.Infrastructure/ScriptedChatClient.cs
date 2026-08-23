@@ -1,28 +1,23 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 
-namespace Agents.Api.Evals.Infrastructure;
+namespace Agents.Evals.Infrastructure;
 
 /// <summary>
 /// An <see cref="IChatClient"/> that replays a fixed script instead of calling a model, so the
-/// evaluation suite runs deterministically and offline.
+/// offline tier runs deterministically and without a network.
 /// </summary>
 /// <remarks>
 /// The client is stateless: it decides what to emit by inspecting the conversation it is handed
 /// rather than by counting calls, so concurrent or repeated runs of the same query cannot
 /// interleave. For each request it finds the scenario matching the first user message, emits the
 /// first tool call that is not already present in the conversation, and falls through to the
-/// final answer once every scripted tool has been called.
+/// scripted answer once every scripted tool has been called. That is exactly the loop
+/// <see cref="FunctionInvokingChatClient"/> drives, so the pipeline under evaluation is the real
+/// one — only the model is fake.
 /// </remarks>
-internal sealed class ScriptedChatClient : IChatClient
+public sealed class ScriptedChatClient(params WeatherScenario[] scenarios) : IChatClient
 {
-    private readonly IReadOnlyList<WeatherScenario> _scenarios;
-
-    public ScriptedChatClient(params WeatherScenario[] scenarios)
-    {
-        this._scenarios = scenarios;
-    }
-
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
@@ -50,7 +45,7 @@ internal sealed class ScriptedChatClient : IChatClient
             return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [content])));
         }
 
-        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, scenario.FinalAnswer)));
+        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, scenario.ScriptedAnswer)));
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -77,7 +72,7 @@ internal sealed class ScriptedChatClient : IChatClient
     {
         var query = conversation.FirstOrDefault(message => message.Role == ChatRole.User)?.Text ?? string.Empty;
 
-        return this._scenarios.FirstOrDefault(scenario => string.Equals(scenario.Query, query, StringComparison.Ordinal))
+        return scenarios.FirstOrDefault(scenario => string.Equals(scenario.Query, query, StringComparison.Ordinal))
                ?? throw new InvalidOperationException($"No scripted scenario matches the query \"{query}\".");
     }
 }

@@ -1,5 +1,6 @@
 using Agents.Api.Evals.Infrastructure;
 using Agents.Api.Evals.Probabilistic;
+using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Xunit;
 
@@ -58,7 +59,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task WeatherQueries_ClearTheirFloors()
     {
-        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -73,7 +74,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task DateRelativeQueries_AreGroundedOnTheCalendarTool()
     {
-        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -109,7 +110,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task OverallConsistency_IsRecorded()
     {
-        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
 
         var outcome = await this.MeasureAsync(
             "overall-consistency",
@@ -132,7 +133,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
             queries,
             evaluator,
             evalName: scenario,
-            numRepetitions: EvalAgentFactory.SampleSize);
+            numRepetitions: EvalEnvironment.SampleSize);
 
         var rates = EvalRates.PerCheck(results);
         var outcome = EvalGate.Evaluate(rates, effectiveFloors);
@@ -140,12 +141,12 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
         // Two records, answering different questions. The store keeps every item so the report
         // tool can show the trajectory and compare executions; the summary keeps the derived
         // rates and bounds, which ScenarioRunResult has no place for.
-        var storePath = await EvalResultStore.WriteAsync(scenario, results, EvalAgentFactory.LiveModel);
-        var summaryPath = EvalReport.Write(scenario, outcome, results, effectiveFloors, EvalAgentFactory.LiveModel);
+        var storePath = await EvalResultStore.WriteAsync(scenario, results, EvalEnvironment.Model);
+        var summaryPath = EvalReport.Write(scenario, outcome, results, effectiveFloors, EvalEnvironment.Model);
 
-        output.WriteLine($"{scenario} — {results.Total} runs of {EvalAgentFactory.LiveModel}");
+        output.WriteLine($"{scenario} — {results.Total} runs of {EvalEnvironment.Model}");
         output.WriteLine(outcome.Report());
-        output.WriteLine($"Store:   {storePath} (execution {EvalResultStore.ExecutionName})");
+        output.WriteLine($"Store:   {storePath} (execution {EvalEnvironment.ExecutionName})");
         output.WriteLine($"Summary: {summaryPath}");
 
         Assert.True(outcome.Passed, outcome.Report());

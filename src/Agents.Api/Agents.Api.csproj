@@ -10,7 +10,11 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Agents.Api.Evals" />
-        <InternalsVisibleTo Include="Agents.Extensions.Evals" />
+        <!--
+          The shared evaluation fixtures reach into the tool contract and the agent's
+          instructions; Agents.Extensions.Evals goes through them and needs no access of its own.
+        -->
+        <InternalsVisibleTo Include="Agents.Evals.Infrastructure" />
     </ItemGroup>
 
     <ItemGroup>

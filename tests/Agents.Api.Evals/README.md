@@ -168,7 +168,14 @@ rest.
 
 ## Adding a scenario
 
-Add a `WeatherScenario` (query, ordered tool calls, final answer) and pass it to
-`ScriptedChatClient`. The client is stateless — it decides what to emit by inspecting the
-conversation rather than counting calls — so repeated and concurrent runs cannot interleave. Each
-tool may appear at most once per scenario.
+Scenarios, the scripted client, the canned tools and the `EVAL_*` knobs live in
+[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), shared with
+`Agents.Extensions.Evals` so the two suites cannot drift into evaluating different agents.
+
+Add a `WeatherScenario` (name, query, ordered tool calls, scripted answer, reference answers) to
+`WeatherScenarios` and pass it to `ScriptedChatClient`. The client is stateless — it decides what
+to emit by inspecting the conversation rather than counting calls — so repeated and concurrent
+runs cannot interleave. Each tool may appear at most once per scenario.
+
+A scenario added here shows up in the sibling suite too, which is the point: the same case is
+then measured at both layers.

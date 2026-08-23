@@ -1,15 +1,15 @@
-namespace Agents.Extensions.Evals.Infrastructure;
+namespace Agents.Evals.Infrastructure;
 
 /// <summary>
 /// The cases this suite evaluates.
 /// </summary>
 /// <remarks>
 /// The numbers in every grounded answer come from <see cref="StubWeatherTools"/>, so the
-/// reference answers are genuinely correct rather than plausible, and
-/// <see cref="Evaluators.WeatherGroundingEvaluator"/> can tell a reported reading from an
-/// invented one.
+/// reference answers are genuinely correct rather than plausible, and a grounding check can tell
+/// a reported reading from an invented one. Both suites script the same three cases, so a change
+/// to what the agent is expected to say lands in one place.
 /// </remarks>
-internal static class WeatherScenarios
+public static class WeatherScenarios
 {
     /// <summary>A single-tool query: current conditions for one city.</summary>
     public static readonly WeatherScenario Tokyo = new(

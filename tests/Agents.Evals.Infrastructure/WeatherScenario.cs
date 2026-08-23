@@ -1,11 +1,11 @@
-namespace Agents.Extensions.Evals.Infrastructure;
+namespace Agents.Evals.Infrastructure;
 
 /// <summary>
 /// A single tool call the scripted chat client should emit.
 /// </summary>
 /// <param name="Name">Tool name, matching the name the pipeline registers.</param>
 /// <param name="Arguments">Arguments to emit, or <c>null</c> for a no-argument tool.</param>
-internal sealed record ScriptedToolCall(string Name, IDictionary<string, object?>? Arguments = null);
+public sealed record ScriptedToolCall(string Name, IDictionary<string, object?>? Arguments = null);
 
 /// <summary>
 /// One evaluated case: the query, what a scripted model does with it, and what a good answer
@@ -23,7 +23,7 @@ internal sealed record ScriptedToolCall(string Name, IDictionary<string, object?
 /// Reference answers for the NLP evaluators and, via the first entry, the ground truth handed to
 /// <c>EquivalenceEvaluator</c>. BLEU and GLEU score against the best-matching reference.
 /// </param>
-internal sealed record WeatherScenario(
+public sealed record WeatherScenario(
     string Name,
     string Query,
     IReadOnlyList<ScriptedToolCall> ToolCalls,

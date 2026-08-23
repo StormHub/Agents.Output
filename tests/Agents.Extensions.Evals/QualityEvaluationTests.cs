@@ -1,3 +1,4 @@
+using Agents.Evals.Infrastructure;
 using Agents.Extensions.Evals.Infrastructure;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.AI.Evaluation;

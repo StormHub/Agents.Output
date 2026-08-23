@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Agents.Extensions.Evals.Infrastructure;
+using Agents.Evals.Infrastructure;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.AI.Evaluation;
 

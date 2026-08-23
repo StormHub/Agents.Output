@@ -1,3 +1,4 @@
+using Agents.Evals.Infrastructure;
 using Agents.Extensions.Evals.Infrastructure;
 using Azure.Identity;
 using Microsoft.Extensions.AI.Evaluation.Safety;

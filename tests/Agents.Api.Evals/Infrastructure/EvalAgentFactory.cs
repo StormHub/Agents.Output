@@ -1,10 +1,10 @@
 using Agents.Api.Options;
 using Agents.Api.Tools;
+using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OptionsRegistration = Agents.Api.Options.DependencyInjection;
 
 namespace Agents.Api.Evals.Infrastructure;
 
@@ -12,6 +12,12 @@ namespace Agents.Api.Evals.Infrastructure;
 /// Builds the agent under evaluation, either scripted (offline, deterministic) or backed by a
 /// real model.
 /// </summary>
+/// <remarks>
+/// The scripted client, the canned tools and the agent's own instructions come from
+/// <c>Agents.Evals.Infrastructure</c>, which the sibling <c>Agents.Extensions.Evals</c> suite also
+/// builds on — the two suites evaluate different layers, but they have to evaluate the same agent
+/// against the same tools or their results cannot be read together.
+/// </remarks>
 internal static class EvalAgentFactory
 {
     /// <summary>
@@ -21,11 +27,11 @@ internal static class EvalAgentFactory
     public static ChatClientAgent CreateScripted(ScriptedChatClient chatClient) =>
         chatClient.AsAIAgent(new ChatClientAgentOptions
         {
-            Name = OptionsRegistration.AgentName,
+            Name = AgentContract.Name,
             ChatOptions = new ChatOptions
             {
-                Instructions = OptionsRegistration.AgentInstructions,
-                Tools = [StubWeatherTools.Calendar(), StubWeatherTools.Weather()],
+                Instructions = AgentContract.Instructions,
+                Tools = [.. StubWeatherTools.All()],
             },
         });
 
@@ -38,8 +44,8 @@ internal static class EvalAgentFactory
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["AgentChatOptions:Model"] = LiveModel,
-                ["AgentChatOptions:BaseUrl"] = LiveBaseUrl,
+                ["AgentChatOptions:Model"] = EvalEnvironment.Model,
+                ["AgentChatOptions:BaseUrl"] = EvalEnvironment.BaseUrl,
             })
             .Build();
 
@@ -50,27 +56,4 @@ internal static class EvalAgentFactory
 
         return services.BuildServiceProvider().GetRequiredService<ChatClientAgent>();
     }
-
-    /// <summary>
-    /// Whether live-model evaluation is enabled. Set <c>EVAL_LIVE_MODEL=1</c> with Ollama
-    /// running to opt in; without it the live suite is skipped so CI stays offline.
-    /// </summary>
-    public static bool LiveModelEnabled =>
-        Environment.GetEnvironmentVariable("EVAL_LIVE_MODEL") is "1" or "true";
-
-    /// <summary>The model under evaluation. Recorded in reports so runs stay comparable.</summary>
-    public static string LiveModel =>
-        Environment.GetEnvironmentVariable("EVAL_OLLAMA_MODEL") ?? "qwen3.5";
-
-    /// <summary>
-    /// Runs per query in the live suite. Rate gating needs a real sample — the default of 30 is
-    /// enough for a flawless run to clear an 80% floor with room to absorb one miss.
-    /// </summary>
-    public static int SampleSize =>
-        int.TryParse(Environment.GetEnvironmentVariable("EVAL_SAMPLE_SIZE"), out var size) && size > 0
-            ? size
-            : 30;
-
-    private static string LiveBaseUrl =>
-        Environment.GetEnvironmentVariable("EVAL_OLLAMA_BASEURL") ?? "http://localhost:11434";
 }

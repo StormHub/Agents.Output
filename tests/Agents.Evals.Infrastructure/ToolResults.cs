@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.AI;
 
-namespace Agents.Extensions.Evals.Infrastructure;
+namespace Agents.Evals.Infrastructure;
 
 /// <summary>
 /// Pulls the tool results out of a completed turn.
@@ -18,12 +18,12 @@ namespace Agents.Extensions.Evals.Infrastructure;
 /// the response, not in the request, and both are searched here.
 /// </para>
 /// <para>
-/// <see cref="Render"/> produces the text handed to <c>GroundednessEvaluator</c>;
-/// <see cref="Values"/> produces the numbers <see cref="Evaluators.WeatherGroundingEvaluator"/>
-/// checks the answer against.
+/// <see cref="Render"/> produces the text handed to a groundedness evaluator;
+/// <see cref="Values"/> produces the numbers a grounding check compares an answer's readings
+/// against.
 /// </para>
 /// </remarks>
-internal static class ToolResults
+public static class ToolResults
 {
     private static readonly Regex NumberPattern = new(@"-?\d+(?:\.\d+)?", RegexOptions.Compiled);
 

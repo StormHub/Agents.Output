@@ -1,19 +1,21 @@
-namespace Agents.Extensions.Evals.Infrastructure;
+namespace Agents.Evals.Infrastructure;
 
 /// <summary>
-/// The knobs this suite reads from the environment.
+/// Every knob both evaluation suites read from the environment, in one place.
 /// </summary>
 /// <remarks>
-/// The store and execution names deliberately use the same variables as the sibling
-/// <c>Agents.Api.Evals</c> suite: both write <c>Microsoft.Extensions.AI.Evaluation.Reporting</c>
-/// records, so pointing them at one <c>EVAL_STORE_DIR</c> puts both suites in a single
-/// <c>dotnet aieval report</c>. Scenario names are prefixed per tier, so they never collide.
+/// The two suites answer different questions — <c>Agents.Api.Evals</c> measures the Agent
+/// Framework agent, <c>Agents.Extensions.Evals</c> measures the chat pipeline underneath it — but
+/// they are pointed at the same model, the same endpoint and the same result store, and a knob
+/// that means one thing in one suite and something else in the other is a trap. Sharing them also
+/// means <c>EVAL_STORE_DIR</c> gathers both suites into a single <c>dotnet aieval report</c>;
+/// scenario names are prefixed per suite, so they never collide.
 /// </remarks>
-internal static class EvalEnvironment
+public static class EvalEnvironment
 {
     /// <summary>Where the result store lives. Point <c>dotnet aieval report</c> at this.</summary>
     /// <remarks>
-    /// The default sits beside the test binary, which is awkward to point a tool at — every test
+    /// The default sits beside the test binary, which is awkward to point a tool at — every run
     /// prints the absolute path it used. Set <c>EVAL_STORE_DIR</c> to somewhere stable to
     /// accumulate history.
     /// </remarks>
@@ -39,14 +41,15 @@ internal static class EvalEnvironment
     public static bool LiveModelEnabled =>
         Environment.GetEnvironmentVariable("EVAL_LIVE_MODEL") is "1" or "true";
 
-    /// <summary>The model under evaluation. Recorded as a tag so runs stay comparable.</summary>
+    /// <summary>The model under evaluation. Recorded in reports so runs stay comparable.</summary>
     public static string Model =>
         Environment.GetEnvironmentVariable("EVAL_OLLAMA_MODEL") ?? "qwen3.5";
 
     /// <summary>
-    /// The model that grades. Defaults to the model under evaluation, which is the cheapest
-    /// setup and the weakest one — a judge that shares the system's blind spots will not see
-    /// them. Set <c>EVAL_JUDGE_MODEL</c> to something stronger when the scores start mattering.
+    /// The model that grades, where a suite uses a judge. Defaults to the model under evaluation,
+    /// which is the cheapest setup and the weakest one — a judge that shares the system's blind
+    /// spots will not see them. Set <c>EVAL_JUDGE_MODEL</c> to something stronger when the scores
+    /// start mattering.
     /// </summary>
     public static string JudgeModel =>
         Environment.GetEnvironmentVariable("EVAL_JUDGE_MODEL") ?? Model;
@@ -54,6 +57,16 @@ internal static class EvalEnvironment
     /// <summary>Ollama endpoint serving both the system under test and the judge.</summary>
     public static string BaseUrl =>
         Environment.GetEnvironmentVariable("EVAL_OLLAMA_BASEURL") ?? "http://localhost:11434";
+
+    /// <summary>
+    /// Runs per query where a suite gates on rates rather than on single runs. Rate gating needs
+    /// a real sample — the default of 30 is enough for a flawless run to clear an 80% floor with
+    /// room to absorb one miss.
+    /// </summary>
+    public static int SampleSize =>
+        int.TryParse(Environment.GetEnvironmentVariable("EVAL_SAMPLE_SIZE"), out var size) && size > 0
+            ? size
+            : 30;
 
     /// <summary>
     /// The score a judged metric has to clear, out of 5.

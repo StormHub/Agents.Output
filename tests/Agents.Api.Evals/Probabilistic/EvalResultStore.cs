@@ -1,4 +1,5 @@
 using System.Globalization;
+using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.AI.Evaluation.Reporting;
@@ -36,26 +37,6 @@ namespace Agents.Api.Evals.Probabilistic;
 /// </remarks>
 internal static class EvalResultStore
 {
-    /// <summary>Where the result store lives. Point `dotnet aieval report` at this.</summary>
-    public static string StorageRoot =>
-        Environment.GetEnvironmentVariable("EVAL_STORE_DIR")
-        ?? Path.Combine(AppContext.BaseDirectory, "eval-store");
-
-    /// <summary>
-    /// Names this run of the suite. Reports group and compare by execution, so set this to the
-    /// CI build number to line runs up; it otherwise falls back to a timestamp.
-    /// </summary>
-    /// <remarks>
-    /// Resolved once per process. Every scenario in one run of the suite has to share an
-    /// execution name — recomputing the timestamp per call would scatter a single suite run
-    /// across as many executions as there are scenarios, and the report groups by execution.
-    /// </remarks>
-    public static string ExecutionName => LazyExecutionName.Value;
-
-    private static readonly Lazy<string> LazyExecutionName = new(() =>
-        Environment.GetEnvironmentVariable("EVAL_EXECUTION_NAME")
-        ?? $"local-{DateTime.UtcNow:yyyyMMdd-HHmmss}");
-
     /// <summary>
     /// Writes one <see cref="ScenarioRunResult"/> per evaluated item.
     /// </summary>
@@ -76,7 +57,7 @@ internal static class EvalResultStore
                 + $"with {nameof(AgentEvaluationResults.Items)}; cannot record this run.");
         }
 
-        var executionName = ExecutionName;
+        var executionName = EvalEnvironment.ExecutionName;
         var createdAt = DateTime.UtcNow;
 
         // Scenario is keyed off the query text rather than the item's position, so the mapping
@@ -120,9 +101,9 @@ internal static class EvalResultStore
                 new[] { $"model:{model}", $"eval:{evalName}" }));
         }
 
-        var store = new DiskBasedResultStore(StorageRoot);
+        var store = new DiskBasedResultStore(EvalEnvironment.StorageRoot);
         await store.WriteResultsAsync(records, cancellationToken).ConfigureAwait(false);
 
-        return StorageRoot;
+        return EvalEnvironment.StorageRoot;
     }
 }

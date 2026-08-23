@@ -1,6 +1,6 @@
+using Agents.Evals.Infrastructure;
 using Microsoft.Extensions.AI;
 using OllamaSharp;
-using OptionsRegistration = Agents.Api.Options.DependencyInjection;
 
 namespace Agents.Extensions.Evals.Infrastructure;
 
@@ -23,13 +23,13 @@ internal static class WeatherChatPipeline
     /// <c>ToolCallAccuracyEvaluator</c> and <c>TaskAdherenceEvaluator</c> are handed these exact
     /// <see cref="AITool"/>s, so the judge sees the schema the model saw.
     /// </summary>
-    public static IReadOnlyList<AITool> Tools { get; } = [StubWeatherTools.Calendar(), StubWeatherTools.Weather()];
+    public static IReadOnlyList<AITool> Tools { get; } = StubWeatherTools.All();
 
     /// <summary>Chat options matching the production agent: same instructions, same tools.</summary>
     public static ChatOptions CreateOptions() =>
         new()
         {
-            Instructions = OptionsRegistration.AgentInstructions,
+            Instructions = AgentContract.Instructions,
             Tools = [.. Tools],
         };
 

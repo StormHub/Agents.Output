@@ -1,7 +1,7 @@
 using Agents.Api.Tools;
 using Microsoft.Extensions.AI;
 
-namespace Agents.Extensions.Evals.Infrastructure;
+namespace Agents.Evals.Infrastructure;
 
 /// <summary>
 /// Stand-ins for the production tools that return canned data instead of calling Open-Meteo.
@@ -9,8 +9,10 @@ namespace Agents.Extensions.Evals.Infrastructure;
 /// <remarks>
 /// <para>
 /// The names, parameter names, descriptions and return types mirror the tools registered in
-/// <c>Agents.Api.Tools.DependencyInjection.AddTools</c>, so the pipeline under evaluation sees
-/// the tool contract production sees, without any network traffic.
+/// <c>Agents.Api.Tools.DependencyInjection.AddTools</c>, so whatever is under evaluation — the
+/// agent or the chat pipeline underneath it — sees the tool contract production sees, without any
+/// network traffic. If a production tool is renamed or its arguments change, both suites start
+/// failing here first.
 /// </para>
 /// <para>
 /// Canned readings are what make the judged tiers gradeable: because the tool output is fixed and
@@ -19,7 +21,7 @@ namespace Agents.Extensions.Evals.Infrastructure;
 /// that was not itself fetched from the same source.
 /// </para>
 /// </remarks>
-internal static class StubWeatherTools
+public static class StubWeatherTools
 {
     /// <summary>Tool name the production registration produces for the calendar tool.</summary>
     public const string CalendarToolName = "GetToday";
@@ -29,6 +31,9 @@ internal static class StubWeatherTools
 
     /// <summary>Fixed "today" so forecast labels and date assertions stay stable.</summary>
     public static readonly DateOnly FixedToday = new(2026, 3, 14);
+
+    /// <summary>Both tools, in the order the production registration adds them.</summary>
+    public static IReadOnlyList<AITool> All() => [Calendar(), Weather()];
 
     public static AIFunction Calendar() =>
         AIFunctionFactory.Create(

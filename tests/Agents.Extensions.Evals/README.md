@@ -54,6 +54,12 @@ the readings are fixed and known, there is a real ground truth to hand `Grounded
 `Equivalence`. Against live Open-Meteo there would be nothing to compare against that was not
 itself fetched from the same source.
 
+The scenarios, the scripted client, those canned tools and the `EVAL_*` knobs all come from
+[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), shared with
+`Agents.Api.Evals` — the two suites evaluate different layers of the same agent, so the fixtures
+have to be the same fixtures. What stays here is what this suite gates on: the evaluators, the
+reporting configuration and the interpreter.
+
 ## Three things worth knowing
 
 **Scores are interpreted, and the defaults are strict.** Every shipped evaluator sets its own
@@ -79,6 +85,8 @@ client `CreateScenarioRunAsync` hands back — here that client is configured fo
 system under test uses its own.
 
 ## Environment
+
+Read through `EvalEnvironment` in the shared project, so both suites see the same values.
 
 | Variable | Default | Meaning |
 |---|---|---|

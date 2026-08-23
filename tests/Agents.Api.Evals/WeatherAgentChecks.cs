@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
@@ -16,9 +17,11 @@ namespace Agents.Api.Evals;
 /// </remarks>
 internal static class WeatherAgentChecks
 {
-    internal const string WeatherToolName = "GetWeatherForecast";
+    // Taken from the shared stubs rather than restated, so a renamed production tool breaks
+    // both suites in one place.
+    internal const string WeatherToolName = StubWeatherTools.WeatherToolName;
 
-    internal const string CalendarToolName = "GetToday";
+    internal const string CalendarToolName = StubWeatherTools.CalendarToolName;
 
     /// <summary>Matches a temperature claim such as "22°C", "-4 degrees" or "18 C".</summary>
     private static readonly Regex TemperatureClaim = new(
