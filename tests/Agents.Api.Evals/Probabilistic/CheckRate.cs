@@ -23,7 +23,7 @@ internal sealed record CheckRate(string CheckName, int Passed, int Total)
     /// Gating on this rather than on <see cref="Observed"/> is what makes a small sample honest.
     /// Five out of five runs looks like a 100% pass rate but is consistent with a true rate as
     /// low as 57%, and the lower bound says so. Wilson is used instead of the normal
-    /// approximation because it stays well behaved at small <see cref="Total"/> and at rates near
+    /// approximation because it stays well-behaved at small <see cref="Total"/> and at rates near
     /// 0 or 1, which is exactly where agent evaluation lives.
     /// </remarks>
     public double LowerBound

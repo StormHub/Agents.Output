@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.Api.Evals", "tests\A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.ConsoleApp", "src\Agents.ConsoleApp\Agents.ConsoleApp.csproj", "{090A4EEB-BCB0-4946-8EA2-F821FAC98CBE}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Evaluations", "Evaluations", "{5A025BEF-8CA7-4264-8F94-75A801251B6B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,8 @@ Global
 		{090A4EEB-BCB0-4946-8EA2-F821FAC98CBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{090A4EEB-BCB0-4946-8EA2-F821FAC98CBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{090A4EEB-BCB0-4946-8EA2-F821FAC98CBE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{87260E5A-90C0-483E-9DBA-BF48996717B1} = {5A025BEF-8CA7-4264-8F94-75A801251B6B}
 	EndGlobalSection
 EndGlobal
