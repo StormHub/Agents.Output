@@ -1,39 +1,22 @@
 using Agents.Api.Tools;
 using Microsoft.Extensions.AI;
 
-namespace Agents.Evals.Infrastructure;
+namespace Agents.Api.Evals.Infrastructure;
 
 /// <summary>
 /// Stand-ins for the production tools that return canned data instead of calling Open-Meteo.
 /// </summary>
 /// <remarks>
-/// <para>
-/// The names, parameter names, descriptions and return types mirror the tools registered in
-/// <c>Agents.Api.Tools.DependencyInjection.AddTools</c>, so whatever is under evaluation — the
-/// agent or the chat pipeline underneath it — sees the tool contract production sees, without any
-/// network traffic. If a production tool is renamed or its arguments change, both suites start
+/// The names, parameter names and return types deliberately mirror the real tools registered in
+/// <c>Agents.Api.Tools.DependencyInjection.AddTools</c>, so the evaluation suite exercises the
+/// same tool contract the agent sees in production without any network traffic. If a production
+/// tool is renamed or its arguments change, the checks in <see cref="WeatherAgentChecks"/> start
 /// failing here first.
-/// </para>
-/// <para>
-/// Canned readings are what make the judged tiers gradeable: because the tool output is fixed and
-/// known, there is a real ground truth to hand <c>GroundednessEvaluator</c> and
-/// <c>EquivalenceEvaluator</c>. Against live Open-Meteo there would be nothing to compare against
-/// that was not itself fetched from the same source.
-/// </para>
 /// </remarks>
-public static class StubWeatherTools
+internal static class StubWeatherTools
 {
-    /// <summary>Tool name the production registration produces for the calendar tool.</summary>
-    public const string CalendarToolName = "GetToday";
-
-    /// <summary>Tool name the production registration produces for the weather tool.</summary>
-    public const string WeatherToolName = "GetWeatherForecast";
-
     /// <summary>Fixed "today" so forecast labels and date assertions stay stable.</summary>
     public static readonly DateOnly FixedToday = new(2026, 3, 14);
-
-    /// <summary>Both tools, in the order the production registration adds them.</summary>
-    public static IReadOnlyList<AITool> All() => [Calendar(), Weather()];
 
     public static AIFunction Calendar() =>
         AIFunctionFactory.Create(
@@ -41,7 +24,7 @@ public static class StubWeatherTools
                 Utc: FixedToday.ToString("yyyy-MM-dd"),
                 UtcOffset: "00:00",
                 Timezone: "UTC"),
-            CalendarToolName,
+            WeatherAgentChecks.CalendarToolName,
             "Get today's date in UTC in yyyy-MM-dd format.");
 
     public static AIFunction Weather() =>
@@ -59,7 +42,7 @@ public static class StubWeatherTools
                 WindDirection = "NE",
                 Forecast = BuildForecast(),
             },
-            WeatherToolName,
+            WeatherAgentChecks.WeatherToolName,
             "Get the current weather conditions and 7-day daily forecast for a location.");
 
     private static List<ForecastDay> BuildForecast()

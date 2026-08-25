@@ -10,19 +10,15 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Agents.Api.Evals" />
-        <!--
-          The shared evaluation fixtures reach into the tool contract and the agent's
-          instructions; Agents.Extensions.Evals goes through them and needs no access of its own.
-        -->
-        <InternalsVisibleTo Include="Agents.Evals.Infrastructure" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Agents.AI" Version="1.17.0" />
+        <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
+        <PackageReference Include="Microsoft.Agents.AI" Version="1.18.0" />
         <PackageReference Include="Microsoft.Agents.AI.AGUI" Version="1.13.0-preview.260703.1" />
-        <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.17.0-preview.260804.1" />
+        <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.18.0-preview.260818.1" />
+        <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.18.0" />
         <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
-        <PackageReference Include="OllamaSharp" Version="5.4.30" />
     </ItemGroup>
 
 </Project>

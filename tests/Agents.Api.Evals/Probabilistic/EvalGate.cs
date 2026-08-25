@@ -15,7 +15,7 @@ namespace Agents.Api.Evals.Probabilistic;
 /// <param name="Rationale">Why this check gets this floor. Shown in failure output.</param>
 internal sealed record CheckFloor(double Floor, string Rationale)
 {
-    public bool IsInvariant => this.Floor >= 1.0;
+    public bool IsInvariant => Floor >= 1.0;
 }
 
 /// <summary>
@@ -113,18 +113,18 @@ internal static class EvalGate
 /// <param name="Violations">Human-readable descriptions of the checks that missed.</param>
 internal sealed record GateOutcome(IReadOnlyList<CheckRate> Rates, IReadOnlyList<string> Violations)
 {
-    public bool Passed => this.Violations.Count == 0;
+    public bool Passed => Violations.Count == 0;
 
     /// <summary>A full account of the run, suitable for an assertion message or a log.</summary>
     public string Report()
     {
         var lines = new List<string> { "Measured rates:" };
-        lines.AddRange(this.Rates.Select(rate => $"  {rate.Describe()}"));
+        lines.AddRange(Rates.Select(rate => $"  {rate.Describe()}"));
 
-        if (this.Violations.Count > 0)
+        if (Violations.Count > 0)
         {
-            lines.Add($"Below floor ({this.Violations.Count}):");
-            lines.AddRange(this.Violations.Select(violation => $"  {violation}"));
+            lines.Add($"Below floor ({Violations.Count}):");
+            lines.AddRange(Violations.Select(violation => $"  {violation}"));
         }
 
         return string.Join(Environment.NewLine, lines);

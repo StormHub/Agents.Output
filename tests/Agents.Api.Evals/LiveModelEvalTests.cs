@@ -1,6 +1,5 @@
 using Agents.Api.Evals.Infrastructure;
 using Agents.Api.Evals.Probabilistic;
-using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Xunit;
 
@@ -26,7 +25,7 @@ namespace Agents.Api.Evals;
 public sealed class LiveModelEvalTests(ITestOutputHelper output)
 {
     private const string SkipReason =
-        "Live model evaluation is off. Set EVAL_LIVE_MODEL=1 with Ollama running to enable it.";
+        "Live model evaluation is off. Set EVAL_LIVE_MODEL=1 with api configurations to enable it.";
 
     /// <summary>
     /// What each check has to clear.
@@ -59,7 +58,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task WeatherQueries_ClearTheirFloors()
     {
-        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -68,13 +67,20 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
             "Give me the current conditions for Buenos Aires.",
         ];
 
-        await this.MeasureAsync("weather-baseline", queries, WeatherAgentChecks.BaselineEvaluator());
+        await MeasureAsync(
+            "weather-baseline",
+            "Baseline weather queries for three cities, sampled many times. Checks that the " +
+            "agent calls the real weather tool, names the right location, never invents a " +
+            "temperature, and gives a plausible coordinate — each judged as a rate, not a " +
+            "one-shot pass/fail, because the agent is stochastic.",
+            queries,
+            WeatherAgentChecks.BaselineEvaluator());
     }
 
     [Fact]
     public async Task DateRelativeQueries_AreGroundedOnTheCalendarTool()
     {
-        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -91,8 +97,12 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
                 "Date-relative queries should reach GetToday; a sustained drop means the model stopped grounding."),
         };
 
-        await this.MeasureAsync(
+        await MeasureAsync(
             "date-grounding",
+            "Queries that reference a relative date ('tomorrow', 'this weekend'). Checks that " +
+            "the agent resolves the date via the calendar tool rather than guessing it itself — " +
+            "a model that infers 'tomorrow' on its own can still answer plausibly but is no " +
+            "longer grounded in the actual current date.",
             queries,
             new LocalEvaluator(WeatherAgentChecks.GroundedOnCalendar()),
             floors);
@@ -110,10 +120,16 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task OverallConsistency_IsRecorded()
     {
-        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
 
-        var outcome = await this.MeasureAsync(
+        var outcome = await MeasureAsync(
             "overall-consistency",
+            "A single weather query, sampled many times, reporting the joint rate at which the " +
+            "agent passes every check at once. This figure is recorded but never gated on its " +
+            "own — independent checks multiply, so it sits below every individual rate by " +
+            "construction — but it's the honest headline number for watching whether the agent " +
+            "is getting better or worse in a way no single check would catch. The per-check " +
+            "floors above still apply and can still fail this run.",
             ["What's the weather in Tokyo?"],
             WeatherAgentChecks.BaselineEvaluator());
 
@@ -122,6 +138,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
 
     private async Task<MeasurementOutcome> MeasureAsync(
         string scenario,
+        string description,
         IEnumerable<string> queries,
         LocalEvaluator evaluator,
         IReadOnlyDictionary<string, CheckFloor>? floors = null)
@@ -133,21 +150,24 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
             queries,
             evaluator,
             evalName: scenario,
-            numRepetitions: EvalEnvironment.SampleSize);
+            numRepetitions: EvalAgentFactory.SampleSize);
 
         var rates = EvalRates.PerCheck(results);
         var outcome = EvalGate.Evaluate(rates, effectiveFloors);
 
-        // Two records, answering different questions. The store keeps every item so the report
-        // tool can show the trajectory and compare executions; the summary keeps the derived
-        // rates and bounds, which ScenarioRunResult has no place for.
-        var storePath = await EvalResultStore.WriteAsync(scenario, results, EvalEnvironment.Model);
-        var summaryPath = EvalReport.Write(scenario, outcome, results, effectiveFloors, EvalEnvironment.Model);
+        var paths = await EvalReport.WriteAsync(
+            nameof(LiveModelEvalTests),
+            scenario,
+            description,
+            outcome,
+            results,
+            effectiveFloors,
+            EvalAgentFactory.LiveModel,
+            EvalAgentFactory.ReportFormat);
 
-        output.WriteLine($"{scenario} — {results.Total} runs of {EvalEnvironment.Model}");
+        output.WriteLine($"{scenario} — {results.Total} runs of {EvalAgentFactory.LiveModel}");
         output.WriteLine(outcome.Report());
-        output.WriteLine($"Store:   {storePath} (execution {EvalEnvironment.ExecutionName})");
-        output.WriteLine($"Summary: {summaryPath}");
+        output.WriteLine($"Reports: {string.Join(", ", paths)}");
 
         Assert.True(outcome.Passed, outcome.Report());
 

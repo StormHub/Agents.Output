@@ -1,10 +1,8 @@
 # Agents.Api.Evals
 
 Evaluation suite for the weather agent, built on the evaluation API that ships inside
-`Microsoft.Agents.AI` — the checks themselves need no extra package, since
-`Microsoft.Extensions.AI.Evaluation` arrives transitively.
-`Microsoft.Extensions.AI.Evaluation.Reporting` is added on top for result storage and HTML
-reports; see [Reporting](#reporting).
+`Microsoft.Agents.AI` (no extra package — `Microsoft.Extensions.AI.Evaluation` arrives
+transitively).
 
 ## Why these checks
 
@@ -43,15 +41,30 @@ EVAL_LIVE_MODEL=1 dotnet test tests/Agents.Api.Evals
 | Variable | Default |
 |---|---|
 | `EVAL_LIVE_MODEL` | unset (live measurement skipped) |
-| `EVAL_OLLAMA_MODEL` | `qwen3.5` |
-| `EVAL_OLLAMA_BASEURL` | `http://localhost:11434` |
-| `EVAL_SAMPLE_SIZE` | `30` runs per query |
-| `EVAL_STORE_DIR` | `eval-store/` beside the test binary |
+| `EVAL_MODEL` | `gpt-4.1-dz-1` |
+| `EVAL_BASEURL` | `http://localhost:11434` |
+| `EVAL_SAMPLE_SIZE` | `35` runs per query |
 | `EVAL_REPORT_DIR` | `eval-reports/` beside the test binary |
-| `EVAL_EXECUTION_NAME` | `local-<timestamp>` |
+| `EVAL_REPORT_FORMAT` | `all` (comma-separated: `gate-summary`, `json`, `html`, or `all`) |
 
 A full live run makes several hundred model calls. That is the cost of measuring a rate, and it
 is why this belongs on a schedule rather than on every pull request.
+
+### Local secrets
+
+The values above are read through a layered `IConfiguration` (in-memory defaults → User Secrets
+→ environment variables), so instead of exporting a shell env var you can store an override
+locally with:
+
+```bash
+dotnet user-secrets set EVAL_MODEL "my-local-model" --project tests/Agents.Api.Evals
+dotnet user-secrets set EVAL_API_KEY "..." --project tests/Agents.Api.Evals
+```
+
+User Secrets never leave the local machine and are never committed, which is the right place for
+anything sensitive — e.g. `EVAL_API_KEY`, scaffolding for a future hosted-model endpoint that
+needs authentication instead of a bare local Ollama URL. Environment variables still take
+precedence over User Secrets, so CI and scripted invocations are unaffected.
 
 ## How the live tier handles a stochastic agent
 
@@ -86,67 +99,51 @@ This makes the sample-size requirement explicit: for a flawless sample the bound
 `n / (n + z²)`, so an 80% floor needs at least 16 runs and a 90% floor needs 35.
 `EvalGate.MinimumSampleFor(floor)` computes it.
 
-**A report, not just a verdict.** A pass/fail answers "should this build go red"; it does not
-answer "is the agent getting better or worse", which is what evaluation is for. So the gate is a
-side effect and the records are the deliverable. Each live run writes two, answering different
-questions — see below.
+**A report, not just a verdict.** Every live run writes to `EVAL_REPORT_DIR`, and `EVAL_REPORT_FORMAT`
+controls which of these it produces (default `all`). All scenarios in a test file (e.g. all three
+in `LiveModelEvalTests`) share one file per format per run, named `{TestClass}-{runId}.*` — a
+random id generated once when the test process starts, not a timestamp, so re-running the file
+never collides with or silently merges into a previous run's report:
+
+- **`gate-summary`** — the original lightweight JSON (`{TestClass}-{runId}.json`), now an
+  `EvalFileReport` wrapping every scenario measured in the run, each with its per-check counts,
+  observed rates, lower bounds and floors. A pass/fail answers "should this build go red"; it does
+  not answer "is the agent getting better or worse", which is what evaluation is for.
+- **`json`** / **`html`** — framework-native reports (`{TestClass}-{runId}.eval.json` / `.eval.html`)
+  built from `Microsoft.Extensions.AI.Evaluation.Reporting`'s `ScenarioRunResult`, all scenarios'
+  sampled runs combined into the same file, with the full conversation, model response and MEAI
+  `EvaluationResult` attached. The gate's own verdict, each check's rate and any floor violations
+  have no equivalent per-item field on `ScenarioRunResult`, so they're attached as `Tags` instead —
+  but only on the first case of each scenario, not every case, since the HTML viewer lists one
+  case per sampled run and repeating the full summary on every one of them (potentially dozens
+  per scenario) buries the transcripts under duplicated text. Every other case in the scenario
+  just points back to the first one.
+
+If a scenario runs more than once in the same process, its entry in the combined file is replaced
+rather than duplicated, so the file always reflects the latest measurement per scenario. This
+holds no state in memory between calls: each write reads back whatever this run already wrote
+(the gate-summary JSON is our own format; the `.eval.json` doubles as the source of truth for the
+framework reports too, since `ScenarioRunResult` round-trips cleanly through
+`System.Text.Json`), merges in the scenario just measured, and writes the combined result back
+out. Only one test is expected to run at a time, so no locking is needed around that
+read-modify-write.
+
+The report is the deliverable and the gate is a side effect.
+
+**Self-explanatory, not just self-consistent.** Every report — gate-summary JSON and the
+framework `.eval.json`/`.eval.html` alike — also carries, without needing the test source open:
+
+- A plain-language **description** of what the scenario measures and why (e.g. why
+  `overall-consistency` is recorded but never gated).
+- Each check's **rationale** for why it has the floor it has, always included, not only when the
+  check fails.
+- A short **glossary** explaining observed rate vs. lower bound, invariant vs. rate floor, and
+  gated vs. ungated, so a reader unfamiliar with the method can interpret the numbers unaided.
+
 
 **A missing check fails.** A floor naming a check the evaluator never emits — a typo, a renamed
 check — is reported as a violation rather than passing silently, so the gate can't quietly become
 weaker than it looks.
-
-## Reporting
-
-Each live run writes two records:
-
-1. **The result store** (`EVAL_STORE_DIR`) — one `ScenarioRunResult` per evaluated item, in
-   `Microsoft.Extensions.AI.Evaluation.Reporting` format. This is the per-item history: full
-   conversation, tool calls, metrics.
-2. **A gate summary** (`EVAL_REPORT_DIR`) — the derived rates, lower bounds and floors, which
-   `ScenarioRunResult` has no schema slot for.
-
-Render the store:
-
-```bash
-dotnet tool restore
-dotnet aieval report --output eval-report.html      # see --help for the full options
-```
-
-By default the store lands beside the test binary (under `bin/`), which is awkward to point a
-tool at — so each run prints its absolute path and execution name in the test output. Set
-`EVAL_STORE_DIR` to somewhere stable if you intend to accumulate history, and `EVAL_EXECUTION_NAME`
-to the CI build number so executions line up run to run.
-
-### How the store is written
-
-The idiomatic path is `ReportingConfiguration` → `ScenarioRun.EvaluateAsync` → dispose. **That
-path is closed to Agent Framework evaluators**: `ReportingConfiguration.Evaluators` takes MEAI's
-`IEvaluator`, which scores one item at a time, while `LocalEvaluator` implements
-`IAgentEvaluator`, which scores a batch. The framework ships `MeaiEvaluatorAdapter` to go from
-`IEvaluator` to `IAgentEvaluator` and nothing in the other direction, so a `LocalEvaluator` cannot
-be handed to a `ReportingConfiguration`.
-
-The two libraries do meet at MEAI's `EvaluationResult` — `AgentEvaluationResults.Items` is a list
-of them, and `ScenarioRunResult` has a public constructor that takes one. So `EvalResultStore`
-maps results and writes to `DiskBasedResultStore` directly, bypassing `ScenarioRun`. The stored
-records are ordinary ones; the report tool cannot tell how they got there.
-
-### The hierarchy lines up
-
-The store is organised **execution → scenario → iteration**, which is how the suite already runs:
-
-| Store concept | Here |
-|---|---|
-| Execution | One run of the suite (`EVAL_EXECUTION_NAME`, or a timestamp — set it to the CI build number so runs line up) |
-| Scenario | One query, as `{evalName}.q00` |
-| Iteration | One repetition — `numRepetitions: 30` becomes iterations `001`–`030` |
-
-Scenario names key off query text rather than item position, so the mapping does not depend on
-the order `EvaluateAsync` emits repetitions in. The execution name resolves once per process, so
-every scenario in a run shares it.
-
-If judge-based checks are added later, Reporting also brings `IEvaluationResponseCacheProvider`
-for caching LLM responses — which matters once each run makes judge calls at 30 repetitions.
 
 ## Two sharp edges in the framework
 
@@ -168,14 +165,7 @@ rest.
 
 ## Adding a scenario
 
-Scenarios, the scripted client, the canned tools and the `EVAL_*` knobs live in
-[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), shared with
-`Agents.Extensions.Evals` so the two suites cannot drift into evaluating different agents.
-
-Add a `WeatherScenario` (name, query, ordered tool calls, scripted answer, reference answers) to
-`WeatherScenarios` and pass it to `ScriptedChatClient`. The client is stateless — it decides what
-to emit by inspecting the conversation rather than counting calls — so repeated and concurrent
-runs cannot interleave. Each tool may appear at most once per scenario.
-
-A scenario added here shows up in the sibling suite too, which is the point: the same case is
-then measured at both layers.
+Add a `WeatherScenario` (query, ordered tool calls, final answer) and pass it to
+`ScriptedChatClient`. The client is stateless — it decides what to emit by inspecting the
+conversation rather than counting calls — so repeated and concurrent runs cannot interleave. Each
+tool may appear at most once per scenario.

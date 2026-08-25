@@ -1,23 +1,28 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 
-namespace Agents.Evals.Infrastructure;
+namespace Agents.Api.Evals.Infrastructure;
 
 /// <summary>
 /// An <see cref="IChatClient"/> that replays a fixed script instead of calling a model, so the
-/// offline tier runs deterministically and without a network.
+/// evaluation suite runs deterministically and offline.
 /// </summary>
 /// <remarks>
 /// The client is stateless: it decides what to emit by inspecting the conversation it is handed
 /// rather than by counting calls, so concurrent or repeated runs of the same query cannot
 /// interleave. For each request it finds the scenario matching the first user message, emits the
 /// first tool call that is not already present in the conversation, and falls through to the
-/// scripted answer once every scripted tool has been called. That is exactly the loop
-/// <see cref="FunctionInvokingChatClient"/> drives, so the pipeline under evaluation is the real
-/// one — only the model is fake.
+/// final answer once every scripted tool has been called.
 /// </remarks>
-public sealed class ScriptedChatClient(params WeatherScenario[] scenarios) : IChatClient
+internal sealed class ScriptedChatClient : IChatClient
 {
+    private readonly IReadOnlyList<WeatherScenario> _scenarios;
+
+    public ScriptedChatClient(params WeatherScenario[] scenarios)
+    {
+        _scenarios = scenarios;
+    }
+
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
@@ -26,7 +31,7 @@ public sealed class ScriptedChatClient(params WeatherScenario[] scenarios) : ICh
         cancellationToken.ThrowIfCancellationRequested();
 
         var conversation = messages as IReadOnlyList<ChatMessage> ?? messages.ToList();
-        var scenario = this.MatchScenario(conversation);
+        var scenario = MatchScenario(conversation);
 
         var alreadyCalled = conversation
             .SelectMany(message => message.Contents)
@@ -45,7 +50,7 @@ public sealed class ScriptedChatClient(params WeatherScenario[] scenarios) : ICh
             return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [content])));
         }
 
-        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, scenario.ScriptedAnswer)));
+        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, scenario.FinalAnswer)));
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -53,7 +58,7 @@ public sealed class ScriptedChatClient(params WeatherScenario[] scenarios) : ICh
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var response = await this.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
+        var response = await GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
         foreach (var update in response.ToChatResponseUpdates())
         {
             yield return update;
@@ -72,7 +77,7 @@ public sealed class ScriptedChatClient(params WeatherScenario[] scenarios) : ICh
     {
         var query = conversation.FirstOrDefault(message => message.Role == ChatRole.User)?.Text ?? string.Empty;
 
-        return scenarios.FirstOrDefault(scenario => string.Equals(scenario.Query, query, StringComparison.Ordinal))
+        return _scenarios.FirstOrDefault(scenario => string.Equals(scenario.Query, query, StringComparison.Ordinal))
                ?? throw new InvalidOperationException($"No scripted scenario matches the query \"{query}\".");
     }
 }

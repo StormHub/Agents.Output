@@ -14,7 +14,7 @@ internal sealed record CheckRate(string CheckName, int Passed, int Total)
     private const double Z = 1.959963985;
 
     /// <summary>The pass rate actually observed in this sample.</summary>
-    public double Observed => this.Total == 0 ? 0 : (double)this.Passed / this.Total;
+    public double Observed => Total == 0 ? 0 : (double)Passed / Total;
 
     /// <summary>
     /// Lower bound of the 95% Wilson score interval for the true pass rate.
@@ -30,13 +30,13 @@ internal sealed record CheckRate(string CheckName, int Passed, int Total)
     {
         get
         {
-            if (this.Total == 0)
+            if (Total == 0)
             {
                 return 0;
             }
 
-            var p = this.Observed;
-            var n = (double)this.Total;
+            var p = Observed;
+            var n = (double)Total;
             const double ZSquared = Z * Z;
 
             var centre = p + (ZSquared / (2 * n));
@@ -50,9 +50,9 @@ internal sealed record CheckRate(string CheckName, int Passed, int Total)
     public string Describe() => string.Format(
         CultureInfo.InvariantCulture,
         "{0}: {1}/{2} = {3:P1} (95% lower bound {4:P1})",
-        this.CheckName,
-        this.Passed,
-        this.Total,
-        this.Observed,
-        this.LowerBound);
+        CheckName,
+        Passed,
+        Total,
+        Observed,
+        LowerBound);
 }
