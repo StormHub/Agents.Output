@@ -6,6 +6,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.Api.Evals", "tests\A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.ConsoleApp", "src\Agents.ConsoleApp\Agents.ConsoleApp.csproj", "{090A4EEB-BCB0-4946-8EA2-F821FAC98CBE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.Evals.Infrastructure", "tests\Agents.Evals.Infrastructure\Agents.Evals.Infrastructure.csproj", "{9B1F4E77-2AD5-4C8E-8A31-64C0F7B0E512}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents.Extensions.Evals", "tests\Agents.Extensions.Evals\Agents.Extensions.Evals.csproj", "{37579F2C-7037-4CC7-B4B4-31BA8C9711FB}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Evaluations", "Evaluations", "{5A025BEF-8CA7-4264-8F94-75A801251B6B}"
 EndProject
 Global
@@ -26,8 +30,18 @@ Global
 		{090A4EEB-BCB0-4946-8EA2-F821FAC98CBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{090A4EEB-BCB0-4946-8EA2-F821FAC98CBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{090A4EEB-BCB0-4946-8EA2-F821FAC98CBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37579F2C-7037-4CC7-B4B4-31BA8C9711FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37579F2C-7037-4CC7-B4B4-31BA8C9711FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37579F2C-7037-4CC7-B4B4-31BA8C9711FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37579F2C-7037-4CC7-B4B4-31BA8C9711FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B1F4E77-2AD5-4C8E-8A31-64C0F7B0E512}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B1F4E77-2AD5-4C8E-8A31-64C0F7B0E512}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B1F4E77-2AD5-4C8E-8A31-64C0F7B0E512}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B1F4E77-2AD5-4C8E-8A31-64C0F7B0E512}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{87260E5A-90C0-483E-9DBA-BF48996717B1} = {5A025BEF-8CA7-4264-8F94-75A801251B6B}
+		{9B1F4E77-2AD5-4C8E-8A31-64C0F7B0E512} = {5A025BEF-8CA7-4264-8F94-75A801251B6B}
+		{37579F2C-7037-4CC7-B4B4-31BA8C9711FB} = {5A025BEF-8CA7-4264-8F94-75A801251B6B}
 	EndGlobalSection
 EndGlobal

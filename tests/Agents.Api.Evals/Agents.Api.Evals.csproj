@@ -32,6 +32,8 @@
         -->
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
         <ProjectReference Include="..\..\src\Agents.Api\Agents.Api.csproj" />
+        <!-- Scenarios, scripted client, canned tools and the EVAL_* knobs, shared with Agents.Extensions.Evals. -->
+        <ProjectReference Include="..\Agents.Evals.Infrastructure\Agents.Evals.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

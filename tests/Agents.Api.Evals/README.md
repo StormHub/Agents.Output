@@ -4,6 +4,12 @@ Evaluation suite for the weather agent, built on the evaluation API that ships i
 `Microsoft.Agents.AI` (no extra package — `Microsoft.Extensions.AI.Evaluation` arrives
 transitively).
 
+Scenarios, the scripted client, the canned tools and the `EVAL_*` knobs come from
+[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), shared with
+[`Agents.Extensions.Evals`](../Agents.Extensions.Evals/README.md), which measures the `IChatClient`
+pipeline underneath the agent this suite measures. What stays here is everything this suite gates
+on — the checks, the floors and the report. Sharing a fixture is safe; sharing a verdict is not.
+
 ## Why these checks
 
 The agent is a tool router, not a prose generator, so the signal is in whether it called the
@@ -35,36 +41,44 @@ confidence-bound maths below. If this arithmetic is wrong the live suite gates o
 Open-Meteo call. Skipped unless enabled:
 
 ```bash
-EVAL_LIVE_MODEL=1 dotnet test tests/Agents.Api.Evals
+EVAL_LIVE_MODEL=1 dotnet run --project tests/Agents.Api.Evals
 ```
 
-| Variable | Default |
-|---|---|
-| `EVAL_LIVE_MODEL` | unset (live measurement skipped) |
-| `EVAL_MODEL` | `gpt-4.1-dz-1` |
-| `EVAL_BASEURL` | `http://localhost:11434` |
-| `EVAL_SAMPLE_SIZE` | `35` runs per query |
-| `EVAL_REPORT_DIR` | `eval-reports/` beside the test binary |
-| `EVAL_REPORT_FORMAT` | `all` (comma-separated: `gate-summary`, `json`, `html`, or `all`) |
+`dotnet run` rather than `dotnet test`: xunit.v3 4.x runs on Microsoft.Testing.Platform, and the
+.NET 10 SDK no longer routes `dotnet test` through VSTest for such projects.
+
+| Variable | Default | Defined in |
+|---|---|---|
+| `EVAL_LIVE_MODEL` | unset (live measurement skipped) | shared |
+| `EVAL_MODEL` | `gpt-4.1-dz-1` | shared |
+| `EVAL_BASEURL` | `https://shared-openai.openai.azure.com` | shared |
+| `EVAL_API_KEY` | unset — required by the live tier | shared |
+| `EVAL_SAMPLE_SIZE` | `35` runs per query | shared |
+| `EVAL_REPORT_DIR` | `eval-reports/` beside the test binary | this suite |
+| `EVAL_REPORT_FORMAT` | `all` (comma-separated: `gate-summary`, `json`, `html`, or `all`) | this suite |
+
+The shared knobs live in
+[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), so they mean the same
+thing here and in `Agents.Extensions.Evals`. The two report knobs stay here because only this suite
+has a report writer for them to mean anything to — but they resolve through the same layering.
 
 A full live run makes several hundred model calls. That is the cost of measuring a rate, and it
 is why this belongs on a schedule rather than on every pull request.
 
 ### Local secrets
 
-The values above are read through a layered `IConfiguration` (in-memory defaults → User Secrets
-→ environment variables), so instead of exporting a shell env var you can store an override
-locally with:
+Every value above is read through a layered `IConfiguration` (in-memory defaults → User Secrets →
+environment variables), so instead of exporting a shell env var you can store an override locally.
+The secrets store belongs to the shared project, so one command configures both suites:
 
 ```bash
-dotnet user-secrets set EVAL_MODEL "my-local-model" --project tests/Agents.Api.Evals
-dotnet user-secrets set EVAL_API_KEY "..." --project tests/Agents.Api.Evals
+dotnet user-secrets set EVAL_API_KEY "..." --project tests/Agents.Evals.Infrastructure
+dotnet user-secrets set EVAL_MODEL "my-deployment" --project tests/Agents.Evals.Infrastructure
 ```
 
 User Secrets never leave the local machine and are never committed, which is the right place for
-anything sensitive — e.g. `EVAL_API_KEY`, scaffolding for a future hosted-model endpoint that
-needs authentication instead of a bare local Ollama URL. Environment variables still take
-precedence over User Secrets, so CI and scripted invocations are unaffected.
+anything sensitive — the endpoint is Azure OpenAI, so the live tier needs a real key. Environment
+variables still take precedence over User Secrets, so CI and scripted invocations are unaffected.
 
 ## How the live tier handles a stochastic agent
 
@@ -165,7 +179,11 @@ rest.
 
 ## Adding a scenario
 
-Add a `WeatherScenario` (query, ordered tool calls, final answer) and pass it to
-`ScriptedChatClient`. The client is stateless — it decides what to emit by inspecting the
-conversation rather than counting calls — so repeated and concurrent runs cannot interleave. Each
-tool may appear at most once per scenario.
+Scenarios, the scripted client and the canned tools live in
+[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md). Add a `WeatherScenario`
+to `WeatherScenarios` and pass it to `ScriptedChatClient`. The client is stateless — it decides what
+to emit by inspecting the conversation rather than counting calls — so repeated and concurrent runs
+cannot interleave. Each tool may appear at most once per scenario.
+
+A scenario added there shows up in the sibling suite too, which is the point: the same case is then
+measured at both layers.

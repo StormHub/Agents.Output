@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- xunit.v3 test projects are executables. -->
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <!--
+          Lets a developer store the live-eval endpoint credential via `dotnet user-secrets`
+          instead of a shell env var. Distinct from both Agents.Api's and Agents.Api.Evals'
+          stores, so an override here can't leak into either.
+        -->
+        <UserSecretsId>0BE3E75D-7A6B-4F3E-9E0C-9A1A2E4F5B77</UserSecretsId>
+        <!--
+          The agentic quality evaluators (Tool Call Accuracy, Task Adherence, and their contexts)
+          ship as [Experimental] and raise AIEVAL001 as an error by default. Judging tool use is
+          the reason this suite exists, so the diagnostic is acknowledged here rather than
+          suppressed at each use site — and it is scoped to this project, so the warning still
+          fires anywhere else in the solution.
+        -->
+        <NoWarn>$(NoWarn);AIEVAL001</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!--
+          The Microsoft.Extensions.AI.Evaluation family, pinned to the 10.9.0 band so it stays on
+          one version with the Evaluation assembly Microsoft.Agents.AI pulls in through
+          Agents.Api, and with the aieval tool in .config/dotnet-tools.json.
+
+          NLP and Safety only ship previews in this band; both declare a dependency on
+          Microsoft.Extensions.AI.Evaluation 10.9.0, so the core assembly stays stable.
+        -->
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation" Version="10.9.0" />
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Quality" Version="10.9.0" />
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="10.9.0" />
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.NLP" Version="10.9.0-preview.1.26411.16" />
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Safety" Version="10.9.0-preview.1.26411.16" />
+        <!-- Credential for the Azure AI Foundry evaluation service behind the Safety evaluators. -->
+        <PackageReference Include="Azure.Identity" Version="1.17.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+        <PackageReference Include="xunit.v3" Version="4.0.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+          Agents.Api is a Microsoft.NET.Sdk.Web project, so the ASP.NET Core framework reference
+          does not flow transitively to this Microsoft.NET.Sdk project. Declare it explicitly.
+        -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <ProjectReference Include="..\..\src\Agents.Api\Agents.Api.csproj" />
+        <!-- Scenarios, scripted client, canned tools and the EVAL_* knobs, shared with Agents.Api.Evals. -->
+        <ProjectReference Include="..\Agents.Evals.Infrastructure\Agents.Evals.Infrastructure.csproj" />
+    </ItemGroup>
+
+</Project>

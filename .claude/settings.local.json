@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git ls-tree *)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet build *)",
+      "Bash(python3 -)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet sln *)"
+    ]
+  }
+}

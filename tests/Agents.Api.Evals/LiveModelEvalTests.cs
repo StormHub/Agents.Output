@@ -1,4 +1,5 @@
 using Agents.Api.Evals.Infrastructure;
+using Agents.Evals.Infrastructure;
 using Agents.Api.Evals.Probabilistic;
 using Microsoft.Agents.AI;
 using Xunit;
@@ -58,7 +59,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task WeatherQueries_ClearTheirFloors()
     {
-        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -80,7 +81,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task DateRelativeQueries_AreGroundedOnTheCalendarTool()
     {
-        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -120,7 +121,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task OverallConsistency_IsRecorded()
     {
-        Assert.SkipUnless(EvalAgentFactory.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
 
         var outcome = await MeasureAsync(
             "overall-consistency",
@@ -150,7 +151,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
             queries,
             evaluator,
             evalName: scenario,
-            numRepetitions: EvalAgentFactory.SampleSize);
+            numRepetitions: EvalEnvironment.SampleSize);
 
         var rates = EvalRates.PerCheck(results);
         var outcome = EvalGate.Evaluate(rates, effectiveFloors);
@@ -162,10 +163,10 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
             outcome,
             results,
             effectiveFloors,
-            EvalAgentFactory.LiveModel,
+            EvalEnvironment.Model,
             EvalAgentFactory.ReportFormat);
 
-        output.WriteLine($"{scenario} — {results.Total} runs of {EvalAgentFactory.LiveModel}");
+        output.WriteLine($"{scenario} — {results.Total} runs of {EvalEnvironment.Model}");
         output.WriteLine(outcome.Report());
         output.WriteLine($"Reports: {string.Join(", ", paths)}");
 

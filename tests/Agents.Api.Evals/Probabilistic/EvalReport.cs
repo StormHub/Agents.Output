@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.AI.Evaluation.Reporting;
@@ -167,7 +168,10 @@ internal static class EvalReport
         EvalReportFormat format = EvalReportFormat.All,
         CancellationToken cancellationToken = default)
     {
-        var directory = Environment.GetEnvironmentVariable("EVAL_REPORT_DIR")
+        // Read through EvalEnvironment rather than straight off the environment, so this
+        // suite-specific knob layers the same way as the shared ones (default → User Secrets →
+        // environment variable).
+        var directory = EvalEnvironment.Setting("EVAL_REPORT_DIR")
                         ?? Path.Combine(AppContext.BaseDirectory, "eval-reports");
         Directory.CreateDirectory(directory);
 

@@ -9,7 +9,15 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!--
+          Agents.Evals.Infrastructure is the only one of these that needs internals today: it owns
+          AgentContract and EvalServices, which reach into the agent's registration so the two
+          suites do not have to. The suites keep their entries because each still composes the
+          production agent for its own layer.
+        -->
+        <InternalsVisibleTo Include="Agents.Evals.Infrastructure" />
         <InternalsVisibleTo Include="Agents.Api.Evals" />
+        <InternalsVisibleTo Include="Agents.Extensions.Evals" />
     </ItemGroup>
 
     <ItemGroup>

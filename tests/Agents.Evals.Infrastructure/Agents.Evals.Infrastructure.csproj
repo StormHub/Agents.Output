@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <!--
+          One secrets store for both suites, because they read the same keys. Storing EVAL_API_KEY
+          once here (see the README for the dotnet user-secrets command) configures the live tiers
+          of Agents.Api.Evals and Agents.Extensions.Evals alike.
+
+          Kept distinct from Agents.Api's own store, so an evaluation override can never be
+          mistaken for a production setting.
+        -->
+        <UserSecretsId>2C5C0B41-6E92-4B0F-9F2D-1D6E0D3A7C84</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!--
+          Deliberately no test framework and no evaluation library. This project holds the fixtures
+          and the environment both suites share; each suite brings its own evaluation library and
+          keeps its own verdicts. Sharing a fixture is safe, sharing a gate is not.
+        -->
+        <!--
+          Agents.Api is a Microsoft.NET.Sdk.Web project, so the ASP.NET Core framework reference
+          does not flow transitively to this Microsoft.NET.Sdk project. Declare it explicitly —
+          Microsoft.Extensions.Configuration.{EnvironmentVariables,UserSecrets,Binder} and the DI
+          container all arrive with it.
+        -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <ProjectReference Include="..\..\src\Agents.Api\Agents.Api.csproj" />
+    </ItemGroup>
+
+</Project>

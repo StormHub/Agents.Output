@@ -1,4 +1,5 @@
 using Agents.Api.Evals.Infrastructure;
+using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI.Evaluation;
 using Xunit;
@@ -17,44 +18,17 @@ namespace Agents.Api.Evals;
 /// </remarks>
 public sealed class ScriptedAgentEvalTests
 {
-    private const string TokyoQuery = "What's the weather in Tokyo?";
-    private const string ParisQuery = "Will it rain in Paris tomorrow?";
-    private const string BerlinQuery = "What's the weather in Berlin?";
-
-    private static readonly WeatherScenario TokyoScenario = new(
-        TokyoQuery,
-        [
-            new ScriptedToolCall(
-                WeatherAgentChecks.WeatherToolName,
-                new Dictionary<string, object?>
-                {
-                    ["latitude"] = 35.6762,
-                    ["longitude"] = 139.6503,
-                    ["location"] = "Tokyo",
-                }),
-        ],
-        "It is currently 22.4°C and cloudy in Tokyo, with 63% humidity and a north-easterly breeze.");
-
-    private static readonly WeatherScenario ParisScenario = new(
-        ParisQuery,
-        [
-            new ScriptedToolCall(WeatherAgentChecks.CalendarToolName),
-            new ScriptedToolCall(
-                WeatherAgentChecks.WeatherToolName,
-                new Dictionary<string, object?>
-                {
-                    ["latitude"] = 48.8566,
-                    ["longitude"] = 2.3522,
-                    ["location"] = "Paris",
-                }),
-        ],
-        "Tomorrow in Paris looks cloudy with a high of 21°C and no rain expected.");
+    // The cases come from Agents.Evals.Infrastructure, so the same three scenarios are measured
+    // here and in Agents.Extensions.Evals — one at the agent layer, one at the pipeline beneath it.
+    private static readonly WeatherScenario TokyoScenario = WeatherScenarios.Tokyo;
+    private static readonly WeatherScenario ParisScenario = WeatherScenarios.Paris;
 
     /// <summary>A model answering from its weights: confident numbers, no tool call.</summary>
-    private static readonly WeatherScenario UngroundedBerlinScenario = new(
-        BerlinQuery,
-        [],
-        "It's 25°C and sunny in Berlin right now, a lovely day to be outside.");
+    private static readonly WeatherScenario UngroundedBerlinScenario = WeatherScenarios.UngroundedBerlin;
+
+    private static readonly string TokyoQuery = TokyoScenario.Query;
+    private static readonly string ParisQuery = ParisScenario.Query;
+    private static readonly string BerlinQuery = UngroundedBerlinScenario.Query;
 
     [Fact]
     public async Task WeatherQueries_PassEveryBaselineCheck()
@@ -106,7 +80,7 @@ public sealed class ScriptedAgentEvalTests
         [
             [
                 new ExpectedToolCall(
-                    WeatherAgentChecks.WeatherToolName,
+                    AgentContract.WeatherToolName,
                     new Dictionary<string, object> { ["location"] = "Tokyo" }),
             ],
         ];
