@@ -1,7 +1,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI.Evaluation;
 
-namespace Agents.Api.Evals.Probabilistic;
+namespace Agents.Evals.Infrastructure.Probabilistic;
 
 /// <summary>
 /// Turns a batch of evaluation results into per-check pass rates.
@@ -12,7 +12,7 @@ namespace Agents.Api.Evals.Probabilistic;
 /// check hides every other result. Splitting the batch per check is what makes it possible to
 /// hold a safety invariant at 100% while letting a routing check sit at 90%.
 /// </remarks>
-internal static class EvalRates
+public static class EvalRates
 {
     /// <summary>
     /// Computes the pass rate of every check across the sample, ordered by check name.

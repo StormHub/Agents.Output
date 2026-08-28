@@ -1,6 +1,6 @@
 using Agents.Api.Evals.Infrastructure;
 using Agents.Evals.Infrastructure;
-using Agents.Api.Evals.Probabilistic;
+using Agents.Evals.Infrastructure.Probabilistic;
 using Microsoft.Agents.AI;
 using Xunit;
 
@@ -164,7 +164,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
             results,
             effectiveFloors,
             EvalEnvironment.Model,
-            EvalAgentFactory.ReportFormat);
+            EvalEnvironment.ReportFormat);
 
         output.WriteLine($"{scenario} — {results.Total} runs of {EvalEnvironment.Model}");
         output.WriteLine(outcome.Report());

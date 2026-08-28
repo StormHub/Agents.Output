@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Agents.Api.Evals.Probabilistic;
+namespace Agents.Evals.Infrastructure.Probabilistic;
 
 /// <summary>
 /// How often one check passed across a sample of agent runs.
@@ -8,7 +8,7 @@ namespace Agents.Api.Evals.Probabilistic;
 /// <param name="CheckName">The check's metric name.</param>
 /// <param name="Passed">Runs in which the check passed.</param>
 /// <param name="Total">Runs in the sample.</param>
-internal sealed record CheckRate(string CheckName, int Passed, int Total)
+public sealed record CheckRate(string CheckName, int Passed, int Total)
 {
     /// <summary>Two-sided 95% confidence (z for 0.975).</summary>
     private const double Z = 1.959963985;

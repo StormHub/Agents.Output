@@ -8,13 +8,37 @@ The fixtures and the environment both evaluation suites share.
 | What is asked | `WeatherScenarios`, `WeatherScenario` | queries with no scripted counterpart |
 | What the model says offline | `ScriptedChatClient` | — |
 | What the tools return | `StubWeatherTools`, `ToolResults` | — |
-| Where it points | `EvalEnvironment`, `EvalServices` | knobs only one suite has |
-| **What counts as passing** | — | **every check, floor, evaluator and assertion** |
+| Where it points | `EvalEnvironment`, `EvalServices` | — |
+| How a sample becomes a verdict | `Probabilistic/` — rates, Wilson bounds, floor comparison, the report | — |
+| **Which checks exist, and what floor each gets** | — | **every check, floor, evaluator and assertion** |
 
-That last row is the whole design rule: **sharing a fixture is safe, sharing a verdict is not.**
-If both suites agreed on what "good" means they would stop being two measurements of the same
-system and start being one measurement counted twice. So this project has no test framework
-reference and no evaluation library reference — it cannot express a verdict even by accident.
+That last row is the design rule: **share the mechanism, keep the policy.**
+
+`EvalGate.Evaluate(rates, floors)` knows how to judge a measured rate against a floor. It does not
+know a single floor — every one is passed in, and they are declared in
+`LiveModelEvalTests.Floors` alongside the reasoning for each. Same for `EvalReport`: it renders
+whatever it is handed. If both suites agreed on what "good" means they would stop being two
+measurements of the same system and start being one measurement counted twice.
+
+## This project is also a test suite
+
+`Probabilistic/` decides whether a live run goes red. Gating on arithmetic nobody checked is how a
+suite ends up quietly asserting nothing, so `EvalGateTests` lives beside it rather than in whichever
+suite happens to call it:
+
+```bash
+dotnet run --project tests/Agents.Evals.Infrastructure   # 12 tests, no model, no network
+```
+
+These are the strictest tests in the repository, and the only ones that are genuinely
+deterministic: the statistics are fixed functions of the counts. That is why the project carries an
+xunit reference despite being a library the other two reference — it is both.
+
+The cost of that is small but real: xunit's build targets flow transitively, so anything
+referencing this project inherits an auto-generated entry point. Both suites are xunit projects
+already, so it costs them nothing — but a plain library or console app referencing this would get a
+`CS7022` warning about a duplicate entry point. If that ever becomes a problem, split
+`Probabilistic/` out rather than moving its tests away from it.
 
 ## Why it exists
 
@@ -28,6 +52,11 @@ copies had already drifted: `EVAL_BASEURL` defaulted to a local Ollama endpoint 
 the Azure endpoint in the other, so the same variable meant two different things depending on which
 suite you ran. That is the failure mode this project exists to prevent — a copy that drifts makes a
 suite measure something the API never does.
+
+`Probabilistic/` arrived later, from `Agents.Api.Evals`. It was never agent-specific: `CheckRate`
+and `EvalGate` are arithmetic over counts, and `EvalRates`/`EvalReport` only touch the Agent
+Framework to read a batch of results. Rate gating is the right answer to a stochastic system at any
+layer, so it belongs where the second suite can reach it.
 
 ## Configuration
 
@@ -51,14 +80,16 @@ dotnet user-secrets set EVAL_API_KEY "..." --project tests/Agents.Evals.Infrastr
 | `EVAL_SAFETY_ENDPOINT` | unset (safety tier skipped) | `Agents.Extensions.Evals` |
 | `EVAL_STORE_DIR` | `eval-store/` beside the test binary | `Agents.Extensions.Evals` |
 | `EVAL_EXECUTION_NAME` | `local-<timestamp>` | `Agents.Extensions.Evals` |
+| `EVAL_REPORT_DIR` | `eval-reports/` beside the test binary | `Agents.Api.Evals` |
+| `EVAL_REPORT_FORMAT` | `all` (`gate-summary`, `json`, `html`, comma-separated) | `Agents.Api.Evals` |
 
-The defaults for `EVAL_MODEL` and `EVAL_BASEURL` match `Agents.Api`'s own `appsettings.json`, so an
-unconfigured run measures the deployment the API actually uses.
+Every one of them is now defined here — there is no second place to look. The defaults for
+`EVAL_MODEL` and `EVAL_BASEURL` match `Agents.Api`'s own `appsettings.json`, so an unconfigured run
+measures the deployment the API actually uses.
 
-A knob only one suite understands — `EVAL_REPORT_DIR` and `EVAL_REPORT_FORMAT` mean nothing outside
-`Agents.Api.Evals`' report writer — stays defined in the suite that owns it, but still reads through
-`EvalEnvironment.Setting(key)`. So "environment variable beats User Secrets beats default" holds for
-every knob, not just the shared ones.
+The "read by" column records who happens to consume each knob today, not a restriction. A knob only
+one suite reads is still defined once and layered the same way, so it cannot come to mean two
+things the way `EVAL_BASEURL` did.
 
 ## Reaching into `Agents.Api`
 

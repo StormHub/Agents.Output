@@ -8,12 +8,6 @@
         <OutputType>Exe</OutputType>
         <IsPackable>false</IsPackable>
         <!--
-          Lets a developer store the live-eval endpoint credential via `dotnet user-secrets`
-          instead of a shell env var. Distinct from both Agents.Api's and Agents.Api.Evals'
-          stores, so an override here can't leak into either.
-        -->
-        <UserSecretsId>0BE3E75D-7A6B-4F3E-9E0C-9A1A2E4F5B77</UserSecretsId>
-        <!--
           The agentic quality evaluators (Tool Call Accuracy, Task Adherence, and their contexts)
           ship as [Experimental] and raise AIEVAL001 as an error by default. Judging tool use is
           the reason this suite exists, so the diagnostic is acknowledged here rather than

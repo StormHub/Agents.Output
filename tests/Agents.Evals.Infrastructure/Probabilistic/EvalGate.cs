@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Agents.Api.Evals.Probabilistic;
+namespace Agents.Evals.Infrastructure.Probabilistic;
 
 /// <summary>
 /// The floor a single check has to clear.
@@ -13,7 +13,7 @@ namespace Agents.Api.Evals.Probabilistic;
 /// </remarks>
 /// <param name="Floor">Minimum acceptable pass rate, in [0, 1].</param>
 /// <param name="Rationale">Why this check gets this floor. Shown in failure output.</param>
-internal sealed record CheckFloor(double Floor, string Rationale)
+public sealed record CheckFloor(double Floor, string Rationale)
 {
     public bool IsInvariant => Floor >= 1.0;
 }
@@ -26,7 +26,7 @@ internal sealed record CheckFloor(double Floor, string Rationale)
 /// rather than stopping at the first violation. That matters more for evaluation than for tests:
 /// the interesting signal is usually the shape of the failures, not the first one.
 /// </remarks>
-internal static class EvalGate
+public static class EvalGate
 {
     /// <summary>
     /// Returns the checks that missed their floor, plus a report of every measured rate.
@@ -111,7 +111,7 @@ internal static class EvalGate
 /// <summary>The result of judging a sample against its floors.</summary>
 /// <param name="Rates">Every measured rate, whether gated or not.</param>
 /// <param name="Violations">Human-readable descriptions of the checks that missed.</param>
-internal sealed record GateOutcome(IReadOnlyList<CheckRate> Rates, IReadOnlyList<string> Violations)
+public sealed record GateOutcome(IReadOnlyList<CheckRate> Rates, IReadOnlyList<string> Violations)
 {
     public bool Passed => Violations.Count == 0;
 

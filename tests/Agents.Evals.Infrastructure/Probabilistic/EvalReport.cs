@@ -1,13 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.AI.Evaluation.Reporting;
 using Microsoft.Extensions.AI.Evaluation.Reporting.Formats.Html;
 using Microsoft.Extensions.AI.Evaluation.Reporting.Formats.Json;
 
-namespace Agents.Api.Evals.Probabilistic;
+namespace Agents.Evals.Infrastructure.Probabilistic;
 
 /// <summary>
 /// One check's measured rate, as recorded in a report.
@@ -17,7 +16,7 @@ namespace Agents.Api.Evals.Probabilistic;
 /// declared floor, whether or not it passed — a reader shouldn't have to wait for a failure to
 /// find out why a check was chosen, or what floor it was judged against.
 /// </remarks>
-internal sealed record CheckRateRecord(
+public sealed record CheckRateRecord(
     string Check,
     int Passed,
     int Total,
@@ -37,7 +36,7 @@ internal sealed record CheckRateRecord(
 /// Short explanations of the statistical terms used below (lower bound, invariant vs. rate
 /// floor, gated vs. ungated), so a reader unfamiliar with the method can interpret the numbers.
 /// </param>
-internal sealed record EvalRunRecord(
+public sealed record EvalRunRecord(
     string Scenario,
     string Description,
     DateTimeOffset TimestampUtc,
@@ -56,7 +55,7 @@ internal sealed record EvalRunRecord(
 /// and <c>.eval.html</c> for one run can be matched up by filename.
 /// </param>
 /// <param name="Scenarios">Every scenario measured so far, one entry each, most recent last.</param>
-internal sealed record EvalFileReport(
+public sealed record EvalFileReport(
     string ReportGroup,
     string RunId,
     DateTimeOffset LastUpdatedUtc,
@@ -64,7 +63,7 @@ internal sealed record EvalFileReport(
 
 /// <summary>The report formats <see cref="EvalReport.WriteAsync"/> can emit.</summary>
 [Flags]
-internal enum EvalReportFormat
+public enum EvalReportFormat
 {
     /// <summary>Our own lightweight per-check rate/floor/violation summary — used for the gate assertion.</summary>
     GateSummary = 1,
@@ -113,7 +112,7 @@ internal enum EvalReportFormat
 /// summary is our own owned format. Only one test is expected to run at a time, so a
 /// read-modify-write per call (no locking, no in-memory accumulator) is sufficient.
 /// </remarks>
-internal static class EvalReport
+public static class EvalReport
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -168,11 +167,7 @@ internal static class EvalReport
         EvalReportFormat format = EvalReportFormat.All,
         CancellationToken cancellationToken = default)
     {
-        // Read through EvalEnvironment rather than straight off the environment, so this
-        // suite-specific knob layers the same way as the shared ones (default → User Secrets →
-        // environment variable).
-        var directory = EvalEnvironment.Setting("EVAL_REPORT_DIR")
-                        ?? Path.Combine(AppContext.BaseDirectory, "eval-reports");
+        var directory = EvalEnvironment.ReportDirectory;
         Directory.CreateDirectory(directory);
 
         var stamp = DateTimeOffset.UtcNow;

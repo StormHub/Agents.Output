@@ -1,3 +1,4 @@
+using Agents.Evals.Infrastructure.Probabilistic;
 using Microsoft.Extensions.Configuration;
 
 namespace Agents.Evals.Infrastructure;
@@ -58,17 +59,6 @@ public static class EvalEnvironment
             .AddUserSecrets(typeof(EvalEnvironment).Assembly, optional: true)
             .AddEnvironmentVariables()
             .Build());
-
-    /// <summary>
-    /// Reads a knob that belongs to a single suite, through the same layering as everything else.
-    /// </summary>
-    /// <remarks>
-    /// Not every setting is shared — <c>EVAL_REPORT_DIR</c> and <c>EVAL_REPORT_FORMAT</c> only mean
-    /// something to <c>Agents.Api.Evals</c>' own report writer. Those stay defined in the suite that
-    /// owns them, but still resolve through this configuration, so "environment variable beats User
-    /// Secrets beats default" holds for every knob rather than only the shared ones.
-    /// </remarks>
-    public static string? Setting(string key) => Configuration.Value[key];
 
     /// <summary>
     /// Whether the tiers that call a real model are enabled. Set <c>EVAL_LIVE_MODEL=1</c> with a
@@ -156,6 +146,45 @@ public static class EvalEnvironment
     /// nothing, short enough that a redeployed model does not keep serving stale verdicts.
     /// </summary>
     public static TimeSpan CacheTimeToLive => TimeSpan.FromDays(14);
+
+    /// <summary>Where <see cref="Probabilistic.EvalReport"/> writes. Defaults beside the test binary.</summary>
+    public static string ReportDirectory =>
+        Configuration.Value["EVAL_REPORT_DIR"] ?? Path.Combine(AppContext.BaseDirectory, "eval-reports");
+
+    /// <summary>
+    /// Which report format(s) <see cref="Probabilistic.EvalReport.WriteAsync"/> emits. Set
+    /// <c>EVAL_REPORT_FORMAT</c> to <c>gate-summary</c>, <c>json</c>, <c>html</c>, or any
+    /// comma-separated combination; defaults to <c>all</c>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The value names a format that does not exist. Failing loudly matters more here than
+    /// elsewhere: silently ignoring a typo would produce a run that measured everything and
+    /// recorded none of it.
+    /// </exception>
+    public static EvalReportFormat ReportFormat
+    {
+        get
+        {
+            var raw = Configuration.Value["EVAL_REPORT_FORMAT"] ?? "all";
+            var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            var format = default(EvalReportFormat);
+            foreach (var part in parts)
+            {
+                format |= part.ToLowerInvariant() switch
+                {
+                    "all" => EvalReportFormat.All,
+                    "gate-summary" => EvalReportFormat.GateSummary,
+                    "json" => EvalReportFormat.Json,
+                    "html" => EvalReportFormat.Html,
+                    _ => throw new InvalidOperationException(
+                        $"Unrecognised EVAL_REPORT_FORMAT value '{part}'. Expected one or more of: gate-summary, json, html, all."),
+                };
+            }
+
+            return format == default ? EvalReportFormat.All : format;
+        }
+    }
 
     private static readonly Lazy<string> LazyExecutionName = new(() =>
         Configuration.Value["EVAL_EXECUTION_NAME"] ?? $"local-{DateTime.UtcNow:yyyyMMdd-HHmmss}");

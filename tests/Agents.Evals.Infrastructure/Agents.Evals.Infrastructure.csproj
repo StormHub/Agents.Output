@@ -6,6 +6,13 @@
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
         <!--
+          xunit.v3 test projects are executables. This project is both: a library the two suites
+          reference, and a runnable suite of its own for the gate arithmetic in Probabilistic/.
+          That arithmetic decides whether a live run goes red, so it gets tested rather than
+          trusted — and its tests belong beside it, not in whichever suite happens to call it.
+        -->
+        <OutputType>Exe</OutputType>
+        <!--
           One secrets store for both suites, because they read the same keys. Storing EVAL_API_KEY
           once here (see the README for the dotnet user-secrets command) configures the live tiers
           of Agents.Api.Evals and Agents.Extensions.Evals alike.
@@ -18,10 +25,25 @@
 
     <ItemGroup>
         <!--
-          Deliberately no test framework and no evaluation library. This project holds the fixtures
-          and the environment both suites share; each suite brings its own evaluation library and
-          keeps its own verdicts. Sharing a fixture is safe, sharing a gate is not.
+          Reporting only: EvalReport renders a measured run through the framework's own JSON and
+          HTML writers. The judging libraries (Quality, NLP, Safety) stay out — each suite brings
+          the evaluators it grades with, and keeps its own verdicts. This project supplies the
+          mechanism for turning a sample into a verdict; the policy, which floor and which check,
+          stays in the suite.
         -->
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="10.9.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+        <PackageReference Include="xunit.v3" Version="4.0.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
         <!--
           Agents.Api is a Microsoft.NET.Sdk.Web project, so the ASP.NET Core framework reference
           does not flow transitively to this Microsoft.NET.Sdk project. Declare it explicitly —

@@ -4,11 +4,18 @@ Evaluation suite for the weather agent, built on the evaluation API that ships i
 `Microsoft.Agents.AI` (no extra package — `Microsoft.Extensions.AI.Evaluation` arrives
 transitively).
 
-Scenarios, the scripted client, the canned tools and the `EVAL_*` knobs come from
-[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), shared with
+Scenarios, the scripted client, the canned tools, the `EVAL_*` knobs and the rate/gate arithmetic
+come from [`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), shared with
 [`Agents.Extensions.Evals`](../Agents.Extensions.Evals/README.md), which measures the `IChatClient`
-pipeline underneath the agent this suite measures. What stays here is everything this suite gates
-on — the checks, the floors and the report. Sharing a fixture is safe; sharing a verdict is not.
+pipeline underneath the agent this suite measures.
+
+What stays here is the policy: **which** checks exist (`WeatherAgentChecks`) and **what floor** each
+one has to clear (`LiveModelEvalTests.Floors`). The shared project knows how to judge a rate against
+a floor; it does not know a single floor. Share the mechanism, keep the policy.
+
+The gate arithmetic has its own deterministic tests, which moved with it —
+`dotnet run --project tests/Agents.Evals.Infrastructure`. If that arithmetic is wrong, the live tier
+below gates on nonsense.
 
 ## Why these checks
 
@@ -25,7 +32,7 @@ conversation `EvaluateAsync` captured and needs no judge model, so the suite is 
 | `plausible_coordinates` | Transposed or invented latitude/longitude |
 | `answer_names_location` | Looking up one city and answering about another |
 
-## Three tiers
+## Two tiers
 
 **Scripted** (`ScriptedAgentEvalTests`) — runs offline and deterministically against a scripted
 `IChatClient` and canned tools. Nothing here is stochastic: the model's turns are fixed, so
@@ -33,9 +40,6 @@ all-must-pass is the correct assertion. It locks the contract the evaluation dep
 names, argument names, how a run becomes an `EvalItem`) and proves the checks actually fire,
 including a negative control where a fabricated answer must fail. A green scripted suite means a
 red live suite is the model's fault, not the harness's.
-
-**Gate arithmetic** (`Probabilistic/EvalGateTests`) — deterministic tests of the rate and
-confidence-bound maths below. If this arithmetic is wrong the live suite gates on nonsense.
 
 **Live** (`LiveModelEvalTests`) — measures the real agent against a real model and the real
 Open-Meteo call. Skipped unless enabled:
@@ -47,20 +51,19 @@ EVAL_LIVE_MODEL=1 dotnet run --project tests/Agents.Api.Evals
 `dotnet run` rather than `dotnet test`: xunit.v3 4.x runs on Microsoft.Testing.Platform, and the
 .NET 10 SDK no longer routes `dotnet test` through VSTest for such projects.
 
-| Variable | Default | Defined in |
-|---|---|---|
-| `EVAL_LIVE_MODEL` | unset (live measurement skipped) | shared |
-| `EVAL_MODEL` | `gpt-4.1-dz-1` | shared |
-| `EVAL_BASEURL` | `https://shared-openai.openai.azure.com` | shared |
-| `EVAL_API_KEY` | unset — required by the live tier | shared |
-| `EVAL_SAMPLE_SIZE` | `35` runs per query | shared |
-| `EVAL_REPORT_DIR` | `eval-reports/` beside the test binary | this suite |
-| `EVAL_REPORT_FORMAT` | `all` (comma-separated: `gate-summary`, `json`, `html`, or `all`) | this suite |
+| Variable | Default |
+|---|---|
+| `EVAL_LIVE_MODEL` | unset (live measurement skipped) |
+| `EVAL_MODEL` | `gpt-4.1-dz-1` |
+| `EVAL_BASEURL` | `https://shared-openai.openai.azure.com` |
+| `EVAL_API_KEY` | unset — required by the live tier |
+| `EVAL_SAMPLE_SIZE` | `35` runs per query |
+| `EVAL_REPORT_DIR` | `eval-reports/` beside the test binary |
+| `EVAL_REPORT_FORMAT` | `all` (comma-separated: `gate-summary`, `json`, `html`, or `all`) |
 
-The shared knobs live in
-[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), so they mean the same
-thing here and in `Agents.Extensions.Evals`. The two report knobs stay here because only this suite
-has a report writer for them to mean anything to — but they resolve through the same layering.
+All of these are defined in `EvalEnvironment` in
+[`Agents.Evals.Infrastructure`](../Agents.Evals.Infrastructure/README.md), so a knob read by both
+suites means the same thing in each — there is no second place to look.
 
 A full live run makes several hundred model calls. That is the cost of measuring a rate, and it
 is why this belongs on a schedule rather than on every pull request.

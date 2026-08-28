@@ -1,4 +1,3 @@
-using Agents.Api.Evals.Probabilistic;
 using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -47,40 +46,4 @@ internal static class EvalAgentFactory
         EvalServices
             .ForLiveModel(EvalEnvironment.Model, withProductionTools: true)
             .GetRequiredService<ChatClientAgent>();
-
-    /// <summary>
-    /// Which report format(s) <see cref="EvalReport.WriteAsync"/> emits. Set
-    /// <c>EVAL_REPORT_FORMAT</c> to <c>gate-summary</c>, <c>json</c>, <c>html</c>, or any
-    /// comma-separated combination; defaults to <c>all</c> (every format).
-    /// </summary>
-    /// <remarks>
-    /// Read through <see cref="EvalEnvironment.Setting"/> rather than straight off the environment,
-    /// so this suite-specific knob still layers the same way as the shared ones. It stays defined
-    /// here because <see cref="EvalReportFormat"/> is this suite's own type — the sibling suite has
-    /// no report writer for it to mean anything to.
-    /// </remarks>
-    public static EvalReportFormat ReportFormat
-    {
-        get
-        {
-            var raw = EvalEnvironment.Setting("EVAL_REPORT_FORMAT") ?? "all";
-            var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            var format = default(EvalReportFormat);
-            foreach (var part in parts)
-            {
-                format |= part.ToLowerInvariant() switch
-                {
-                    "all" => EvalReportFormat.All,
-                    "gate-summary" => EvalReportFormat.GateSummary,
-                    "json" => EvalReportFormat.Json,
-                    "html" => EvalReportFormat.Html,
-                    _ => throw new InvalidOperationException(
-                        $"Unrecognised EVAL_REPORT_FORMAT value '{part}'. Expected one or more of: gate-summary, json, html, all."),
-                };
-            }
-
-            return format == default ? EvalReportFormat.All : format;
-        }
-    }
 }

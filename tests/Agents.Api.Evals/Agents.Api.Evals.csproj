@@ -7,16 +7,14 @@
         <!-- xunit.v3 test projects are executables. -->
         <OutputType>Exe</OutputType>
         <IsPackable>false</IsPackable>
-        <!--
-          Lets a developer store live-eval overrides (e.g. a future hosted-model API key) via
-          `dotnet user-secrets`, distinct from Agents.Api's own secrets store, without touching
-          shell env vars or committing anything.
-        -->
-        <UserSecretsId>35C79781-CACE-47D2-91D8-53F66AE5EC9B</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="10.9.0" />
+        <!--
+          No evaluation package reference: this suite evaluates through the API that ships inside
+          Microsoft.Agents.AI, and the reporting library it renders with now arrives through
+          Agents.Evals.Infrastructure, which owns EvalReport.
+        -->
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
         <PackageReference Include="xunit.v3" Version="4.0.0" />
         <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">

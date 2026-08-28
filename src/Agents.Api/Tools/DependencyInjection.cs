@@ -14,7 +14,8 @@ internal static class DependencyInjection
         services.AddTransient<AITool>(provider =>
         {
             var calendarDay = provider.GetRequiredService<CalendarDay>();
-            return AIFunctionFactory.Create(calendarDay.GetToday, 
+            return AIFunctionFactory.Create(
+                calendarDay.GetToday, 
                 serializerOptions: JsonSerializerOptions.Web);
         });
         
@@ -35,7 +36,8 @@ internal static class DependencyInjection
         services.AddTransient<AITool>(provider =>
         {
             var weatherForecast = provider.GetRequiredService<WeatherForecast>();
-            return AIFunctionFactory.Create(weatherForecast.GetWeatherForecast, 
+            return AIFunctionFactory.Create(
+                weatherForecast.GetWeatherForecast, 
                 serializerOptions: JsonSerializerOptions.Web);
         });
 

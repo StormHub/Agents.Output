@@ -2,7 +2,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI.Evaluation;
 using Xunit;
 
-namespace Agents.Api.Evals.Probabilistic;
+namespace Agents.Evals.Infrastructure.Probabilistic;
 
 /// <summary>
 /// Tests for the rate and gating arithmetic.
