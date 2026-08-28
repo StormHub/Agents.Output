@@ -13,7 +13,7 @@ namespace Agents.Evals.Infrastructure.Probabilistic;
 /// </summary>
 /// <remarks>
 /// <see cref="Rationale"/> and <see cref="Floor"/> are populated whenever the check has a
-/// declared floor, whether or not it passed — a reader shouldn't have to wait for a failure to
+/// declared floor, whether it passed — a reader shouldn't have to wait for a failure to
 /// find out why a check was chosen, or what floor it was judged against.
 /// </remarks>
 public sealed record CheckRateRecord(
