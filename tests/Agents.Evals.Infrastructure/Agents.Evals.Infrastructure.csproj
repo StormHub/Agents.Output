@@ -5,22 +5,6 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <!--
-          xunit.v3 test projects are executables. This project is both: a library the two suites
-          reference, and a runnable suite of its own for the gate arithmetic in Probabilistic/.
-          That arithmetic decides whether a live run goes red, so it gets tested rather than
-          trusted — and its tests belong beside it, not in whichever suite happens to call it.
-        -->
-        <OutputType>Exe</OutputType>
-        <!--
-          One secrets store for both suites, because they read the same keys. Storing EVAL_API_KEY
-          once here (see the README for the dotnet user-secrets command) configures the live tiers
-          of Agents.Api.Evals and Agents.Extensions.Evals alike.
-
-          Kept distinct from Agents.Api's own store, so an evaluation override can never be
-          mistaken for a production setting.
-        -->
-        <UserSecretsId>2C5C0B41-6E92-4B0F-9F2D-1D6E0D3A7C84</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
@@ -31,7 +15,11 @@
           mechanism for turning a sample into a verdict; the policy, which floor and which check,
           stays in the suite.
         -->
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation" Version="10.9.0" />
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Quality" Version="10.9.0" />
         <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="10.9.0" />
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.NLP" Version="10.9.0-preview.1.26411.16" />
+        <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Safety" Version="10.9.0-preview.1.26411.16" />        
     </ItemGroup>
 
     <ItemGroup>
