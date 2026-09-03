@@ -1,8 +1,9 @@
+using Agents.Evals.Infrastructure;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Agents.Evals.Infrastructure;
+namespace Agents.Evals.Trajectory;
 
 /// <summary>
 /// Builds the agent under evaluation, either scripted (offline, deterministic) or backed by a real

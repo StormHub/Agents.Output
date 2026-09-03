@@ -1,7 +1,8 @@
+using Agents.Evals.Infrastructure;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Agents.Evals.Infrastructure;
+namespace Agents.Evals.Metrics;
 
 /// <summary>
 /// The system under evaluation: a plain <see cref="IChatClient"/> pipeline built out of
