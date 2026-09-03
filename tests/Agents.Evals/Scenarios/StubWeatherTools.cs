@@ -1,5 +1,4 @@
 using Agents.Api.Tools;
-using Agents.Evals.Infrastructure;
 using Microsoft.Extensions.AI;
 
 namespace Agents.Evals.Scenarios;

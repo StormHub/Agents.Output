@@ -25,13 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!--
-          Agents.Api is a Microsoft.NET.Sdk.Web project, so the ASP.NET Core framework reference
-          does not flow transitively to this Microsoft.NET.Sdk project. Declare it explicitly.
-        -->
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
         <ProjectReference Include="..\..\src\Agents.Api\Agents.Api.csproj" />
-        <!-- Scenarios, scripted client, canned tools and the EVAL_* knobs, shared with Agents.Extensions.Evals. -->
         <ProjectReference Include="..\Agents.Evals.Infrastructure\Agents.Evals.Infrastructure.csproj" />
     </ItemGroup>
 
