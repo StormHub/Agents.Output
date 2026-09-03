@@ -46,7 +46,7 @@ public static class EvalEnvironment
     /// never throws building this. The offline tiers of both suites read nothing from here but the
     /// report and store locations, so a missing or malformed secrets file cannot affect them.
     /// </remarks>
-    private static readonly Lazy<IConfiguration> Configuration = new(() =>
+    private static readonly IConfiguration Configuration =
         new ConfigurationBuilder()
             .AddInMemoryCollection(
                 new Dictionary<string, string?>
@@ -58,17 +58,17 @@ public static class EvalEnvironment
                 })
             .AddUserSecrets(typeof(EvalEnvironment).Assembly, optional: true)
             .AddEnvironmentVariables()
-            .Build());
+            .Build();
 
     /// <summary>
     /// Whether the tiers that call a real model are enabled. Set <c>EVAL_LIVE_MODEL=1</c> with a
     /// reachable endpoint and an API key to opt in; without it they skip, so CI stays offline and
     /// free.
     /// </summary>
-    public static bool LiveModelEnabled => Configuration.Value["EVAL_LIVE_MODEL"] is "1" or "true";
+    public static bool LiveModelEnabled => Configuration["EVAL_LIVE_MODEL"] is "1" or "true";
 
     /// <summary>The deployment under evaluation. Recorded in reports so runs stay comparable.</summary>
-    public static string Model => Configuration.Value["EVAL_MODEL"] ?? DefaultModel;
+    public static string Model => Configuration["EVAL_MODEL"] ?? DefaultModel;
 
     /// <summary>
     /// The deployment that grades, where a suite uses a judge. Defaults to the deployment under
@@ -76,16 +76,16 @@ public static class EvalEnvironment
     /// system's blind spots will not see them. Set <c>EVAL_JUDGE_MODEL</c> to something stronger
     /// once the scores start mattering.
     /// </summary>
-    public static string JudgeModel => Configuration.Value["EVAL_JUDGE_MODEL"] ?? Model;
+    public static string JudgeModel => Configuration["EVAL_JUDGE_MODEL"] ?? Model;
 
     /// <summary>Azure OpenAI endpoint serving both the system under test and the judge.</summary>
-    public static string BaseUrl => Configuration.Value["EVAL_BASEURL"] ?? DefaultBaseUrl;
+    public static string BaseUrl => Configuration["EVAL_BASEURL"] ?? DefaultBaseUrl;
 
     /// <summary>
     /// Key for <see cref="BaseUrl"/>. The production registration rejects a blank key, so the live
     /// tiers of both suites cannot start without one.
     /// </summary>
-    public static string? ApiKey => Configuration.Value["EVAL_API_KEY"];
+    public static string? ApiKey => Configuration["EVAL_API_KEY"];
 
     /// <summary>
     /// Runs per query where a suite gates on rates rather than on single runs.
@@ -96,7 +96,7 @@ public static class EvalEnvironment
     /// absorb the occasional miss on the 80% floors below it.
     /// </remarks>
     public static int SampleSize =>
-        int.TryParse(Configuration.Value["EVAL_SAMPLE_SIZE"], out var size) && size > 0 ? size : 35;
+        int.TryParse(Configuration["EVAL_SAMPLE_SIZE"], out var size) && size > 0 ? size : 35;
 
     /// <summary>
     /// The score a judged metric has to clear, out of 5.
@@ -108,14 +108,14 @@ public static class EvalEnvironment
     /// for the deployment actually in use.
     /// </remarks>
     public static double QualityFloor =>
-        double.TryParse(Configuration.Value["EVAL_QUALITY_FLOOR"], out var floor) ? floor : 3.0;
+        double.TryParse(Configuration["EVAL_QUALITY_FLOOR"], out var floor) ? floor : 3.0;
 
     /// <summary>
     /// Endpoint of the Azure AI Foundry project backing the content safety evaluators, e.g.
     /// <c>https://[account].services.ai.azure.com/api/projects/[project]</c>. Unset means the safety
     /// tier skips.
     /// </summary>
-    public static string? SafetyEndpoint => Configuration.Value["EVAL_SAFETY_ENDPOINT"];
+    public static string? SafetyEndpoint => Configuration["EVAL_SAFETY_ENDPOINT"];
 
     /// <summary>Whether the safety tier has an endpoint to talk to.</summary>
     public static bool SafetyEnabled => !string.IsNullOrWhiteSpace(SafetyEndpoint);
@@ -128,7 +128,7 @@ public static class EvalEnvironment
     /// them into one report.
     /// </remarks>
     public static string StorageRoot =>
-        Configuration.Value["EVAL_STORE_DIR"] ?? Path.Combine(AppContext.BaseDirectory, "eval-store");
+        Configuration["EVAL_STORE_DIR"] ?? Path.Combine(AppContext.BaseDirectory, "eval-store");
 
     /// <summary>
     /// Names this run of the suite. Reports group and compare by execution, so set this to the CI
@@ -139,7 +139,8 @@ public static class EvalEnvironment
     /// recomputing the timestamp per call would scatter a single run across as many executions as
     /// there are scenarios, and the report would show no run at all, only fragments of one.
     /// </remarks>
-    public static string ExecutionName => LazyExecutionName.Value;
+    public static string ExecutionName { get; } =
+        Configuration["EVAL_EXECUTION_NAME"] ?? $"local-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
 
     /// <summary>
     /// How long a cached judge response stays valid. Long enough that re-running a red suite costs
@@ -149,7 +150,7 @@ public static class EvalEnvironment
 
     /// <summary>Where <see cref="Probabilistic.EvalReport"/> writes. Defaults beside the test binary.</summary>
     public static string ReportDirectory =>
-        Configuration.Value["EVAL_REPORT_DIR"] ?? Path.Combine(AppContext.BaseDirectory, "eval-reports");
+        Configuration["EVAL_REPORT_DIR"] ?? Path.Combine(AppContext.BaseDirectory, "eval-reports");
 
     /// <summary>
     /// Which report format(s) <see cref="Probabilistic.EvalReport.WriteAsync"/> emits. Set
@@ -165,7 +166,7 @@ public static class EvalEnvironment
     {
         get
         {
-            var raw = Configuration.Value["EVAL_REPORT_FORMAT"] ?? "all";
+            var raw = Configuration["EVAL_REPORT_FORMAT"] ?? "all";
             var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var format = default(EvalReportFormat);
@@ -185,7 +186,4 @@ public static class EvalEnvironment
             return format == default ? EvalReportFormat.All : format;
         }
     }
-
-    private static readonly Lazy<string> LazyExecutionName = new(() =>
-        Configuration.Value["EVAL_EXECUTION_NAME"] ?? $"local-{DateTime.UtcNow:yyyyMMdd-HHmmss}");
 }
