@@ -32,13 +32,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!--
-          Agents.Api is a Microsoft.NET.Sdk.Web project, so the ASP.NET Core framework reference
-          does not flow transitively to this Microsoft.NET.Sdk project. Declare it explicitly —
-          Microsoft.Extensions.Configuration.{EnvironmentVariables,UserSecrets,Binder} and the DI
-          container all arrive with it.
-        -->
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
         <ProjectReference Include="..\..\src\Agents.Api\Agents.Api.csproj" />
     </ItemGroup>
 
