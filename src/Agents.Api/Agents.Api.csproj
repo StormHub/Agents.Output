@@ -16,8 +16,7 @@
           production agent for its own layer.
         -->
         <InternalsVisibleTo Include="Agents.Evals.Infrastructure" />
-        <InternalsVisibleTo Include="Agents.Api.Evals" />
-        <InternalsVisibleTo Include="Agents.Extensions.Evals" />
+        <InternalsVisibleTo Include="Agents.Evals" />
     </ItemGroup>
 
     <ItemGroup>

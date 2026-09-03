@@ -1,4 +1,6 @@
-namespace Agents.Evals.Infrastructure;
+using Agents.Evals.Trajectory;
+
+namespace Agents.Evals.Scenarios;
 
 /// <summary>
 /// A single tool call the scripted chat client should emit.

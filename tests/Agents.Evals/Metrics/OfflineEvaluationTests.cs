@@ -1,5 +1,6 @@
 using Agents.Evals.Infrastructure;
 using Agents.Evals.Metrics.Evaluators;
+using Agents.Evals.Scenarios;
 using Microsoft.Extensions.AI.Evaluation;
 using Microsoft.Extensions.AI.Evaluation.NLP;
 using Microsoft.Extensions.AI.Evaluation.Reporting;

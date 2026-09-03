@@ -1,4 +1,5 @@
 using Agents.Evals.Infrastructure;
+using Agents.Evals.Scenarios;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;

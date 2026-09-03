@@ -1,7 +1,8 @@
 using System.Runtime.CompilerServices;
+using Agents.Evals.Scenarios;
 using Microsoft.Extensions.AI;
 
-namespace Agents.Evals.Infrastructure;
+namespace Agents.Evals.Trajectory;
 
 /// <summary>
 /// An <see cref="IChatClient"/> that replays a fixed script instead of calling a model, so the

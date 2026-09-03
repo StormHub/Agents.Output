@@ -1,4 +1,6 @@
-namespace Agents.Evals.Infrastructure;
+using Agents.Evals.Infrastructure;
+
+namespace Agents.Evals.Scenarios;
 
 /// <summary>
 /// The cases this suite evaluates.

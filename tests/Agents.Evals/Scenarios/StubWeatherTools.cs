@@ -1,7 +1,8 @@
 using Agents.Api.Tools;
+using Agents.Evals.Infrastructure;
 using Microsoft.Extensions.AI;
 
-namespace Agents.Evals.Infrastructure;
+namespace Agents.Evals.Scenarios;
 
 /// <summary>
 /// Stand-ins for the production tools that return canned data instead of calling Open-Meteo.
