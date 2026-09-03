@@ -9,7 +9,7 @@ namespace Agents.Evals.Scenarios;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The names come from <see cref="AgentContract"/>, and the parameter names, descriptions and
+/// The names come from <see cref="WeatherTools"/>, and the parameter names, descriptions and
 /// return types deliberately mirror the real tools registered in
 /// <c>Agents.Api.Tools.DependencyInjection.AddTools</c>, so both suites exercise the same tool
 /// contract the model sees in production without any network traffic.
@@ -35,7 +35,7 @@ public static class StubWeatherTools
                 Utc: FixedToday.ToString("yyyy-MM-dd"),
                 UtcOffset: "00:00",
                 Timezone: "UTC"),
-            AgentContract.CalendarToolName,
+            WeatherTools.CalendarToolName,
             "Get today's date in UTC in yyyy-MM-dd format.");
 
     public static AIFunction Weather() =>
@@ -53,7 +53,7 @@ public static class StubWeatherTools
                 WindDirection = "NE",
                 Forecast = BuildForecast(),
             },
-            AgentContract.WeatherToolName,
+            WeatherTools.WeatherToolName,
             "Get the current weather conditions and 7-day daily forecast for a location.");
 
     private static List<ForecastDay> BuildForecast()

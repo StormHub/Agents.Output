@@ -19,7 +19,7 @@ public static class WeatherScenarios
         ToolCalls:
         [
             new ScriptedToolCall(
-                AgentContract.WeatherToolName,
+                WeatherTools.WeatherToolName,
                 new Dictionary<string, object?>
                 {
                     ["latitude"] = 35.6762,
@@ -47,9 +47,9 @@ public static class WeatherScenarios
         Query: "Will it rain in Paris tomorrow?",
         ToolCalls:
         [
-            new ScriptedToolCall(AgentContract.CalendarToolName),
+            new ScriptedToolCall(WeatherTools.CalendarToolName),
             new ScriptedToolCall(
-                AgentContract.WeatherToolName,
+                WeatherTools.WeatherToolName,
                 new Dictionary<string, object?>
                 {
                     ["latitude"] = 48.8566,

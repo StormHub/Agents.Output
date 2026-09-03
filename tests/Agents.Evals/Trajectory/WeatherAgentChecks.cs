@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Agents.Evals.Infrastructure;
+using Agents.Evals.Scenarios;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
@@ -39,7 +40,7 @@ internal static class WeatherAgentChecks
 
     /// <summary>The agent answered a weather question by calling the weather tool.</summary>
     public static EvalCheck CalledWeatherTool() =>
-        Named("called_weather_tool", EvalChecks.ToolCalledCheck(AgentContract.WeatherToolName));
+        Named("called_weather_tool", EvalChecks.ToolCalledCheck(WeatherTools.WeatherToolName));
 
     /// <summary>
     /// A date-relative question ("tomorrow", "this weekend") was grounded on the calendar tool
@@ -48,7 +49,7 @@ internal static class WeatherAgentChecks
     public static EvalCheck GroundedOnCalendar() =>
         Named(
             "grounded_on_calendar",
-            EvalChecks.ToolCalledCheck(ToolCalledMode.All, AgentContract.CalendarToolName, AgentContract.WeatherToolName));
+            EvalChecks.ToolCalledCheck(ToolCalledMode.All, WeatherTools.CalendarToolName, WeatherTools.WeatherToolName));
 
     /// <summary>The agent produced a substantive answer rather than an empty turn.</summary>
     public static EvalCheck Answered() =>
@@ -64,7 +65,7 @@ internal static class WeatherAgentChecks
     public static EvalCheck NoUngroundedWeatherClaim() => item =>
     {
         var calledWeatherTool = ToolCalls(item)
-            .Any(call => string.Equals(call.Name, AgentContract.WeatherToolName, StringComparison.OrdinalIgnoreCase));
+            .Any(call => string.Equals(call.Name, WeatherTools.WeatherToolName, StringComparison.OrdinalIgnoreCase));
 
         var claimsTemperature = TemperatureClaim.IsMatch(item.Response);
         var passed = !claimsTemperature || calledWeatherTool;
@@ -73,7 +74,7 @@ internal static class WeatherAgentChecks
             ? claimsTemperature
                 ? "Temperature claim is backed by a weather tool call."
                 : "Response makes no temperature claim."
-            : $"Response states a temperature but never called {AgentContract.WeatherToolName}.";
+            : $"Response states a temperature but never called {WeatherTools.WeatherToolName}.";
 
         return new EvalCheckResult(passed, reason, "no_ungrounded_weather_claim");
     };
@@ -88,12 +89,12 @@ internal static class WeatherAgentChecks
     public static EvalCheck PlausibleCoordinates() => item =>
     {
         var calls = ToolCalls(item)
-            .Where(call => string.Equals(call.Name, AgentContract.WeatherToolName, StringComparison.OrdinalIgnoreCase))
+            .Where(call => string.Equals(call.Name, WeatherTools.WeatherToolName, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (calls.Count == 0)
         {
-            return new EvalCheckResult(true, $"{AgentContract.WeatherToolName} was not called.", "plausible_coordinates");
+            return new EvalCheckResult(true, $"{WeatherTools.WeatherToolName} was not called.", "plausible_coordinates");
         }
 
         var offenders = new List<string>();
@@ -133,7 +134,7 @@ internal static class WeatherAgentChecks
     public static EvalCheck AnswerNamesLocation() => item =>
     {
         var locations = ToolCalls(item)
-            .Where(call => string.Equals(call.Name, AgentContract.WeatherToolName, StringComparison.OrdinalIgnoreCase))
+            .Where(call => string.Equals(call.Name, WeatherTools.WeatherToolName, StringComparison.OrdinalIgnoreCase))
             .Select(call => ArgumentAsString(call, "location"))
             .Where(location => !string.IsNullOrWhiteSpace(location))
             .Select(location => location!.Split(',')[0].Trim())

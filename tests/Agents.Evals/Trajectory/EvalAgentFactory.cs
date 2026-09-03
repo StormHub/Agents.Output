@@ -1,3 +1,4 @@
+using Agents.Api.Options;
 using Agents.Evals.Infrastructure;
 using Agents.Evals.Scenarios;
 using Microsoft.Agents.AI;
@@ -26,10 +27,10 @@ internal static class EvalAgentFactory
         chatClient.AsAIAgent(
             new ChatClientAgentOptions
             {
-                Name = AgentContract.Name,
+                Name = WeatherAgent.Name,
                 ChatOptions = new ChatOptions
                 {
-                    Instructions = AgentContract.Instructions,
+                    Instructions = WeatherAgent.Instructions,
                     Tools = [.. StubWeatherTools.All()],
                 },
             });

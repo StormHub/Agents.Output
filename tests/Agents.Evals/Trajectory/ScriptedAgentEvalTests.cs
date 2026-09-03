@@ -80,7 +80,7 @@ public sealed class ScriptedAgentEvalTests
         [
             [
                 new ExpectedToolCall(
-                    AgentContract.WeatherToolName,
+                    WeatherTools.WeatherToolName,
                     new Dictionary<string, object> { ["location"] = "Tokyo" }),
             ],
         ];

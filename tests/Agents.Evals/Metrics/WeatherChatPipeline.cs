@@ -1,3 +1,4 @@
+using Agents.Api.Options;
 using Agents.Evals.Infrastructure;
 using Agents.Evals.Scenarios;
 using Agents.Evals.Trajectory;
@@ -39,7 +40,7 @@ internal static class WeatherChatPipeline
     public static ChatOptions CreateOptions() =>
         new()
         {
-            Instructions = AgentContract.Instructions,
+            Instructions = WeatherAgent.Instructions,
             Tools = [.. Tools],
         };
 

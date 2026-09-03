@@ -9,10 +9,6 @@ namespace Agents.Api.Options;
 
 internal static class DependencyInjection
 {
-    internal const string AgentName = "WeatherChat";
-
-    internal const string AgentInstructions = "You are a helpful assistant that answers questions.";
-
     extension(IServiceCollection services)
     {
         public IServiceCollection AddAgent(IConfiguration configuration) =>
@@ -72,14 +68,14 @@ internal static class DependencyInjection
 
                 var chatOptions = new ChatOptions
                 {
-                    Instructions = AgentInstructions,
+                    Instructions = WeatherAgent.Instructions,
                     Tools = tools,
                 };
 
                 return chatClient.AsAIAgent(
                     new ChatClientAgentOptions
                     {
-                        Name = AgentName,
+                        Name = WeatherAgent.Name,
                         ChatOptions = chatOptions,
                     },
                     provider.GetRequiredService<ILoggerFactory>());

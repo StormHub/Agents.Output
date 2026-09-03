@@ -1,7 +1,6 @@
 using Agents.Api.Tools;
-using OptionsRegistration = Agents.Api.Options.DependencyInjection;
 
-namespace Agents.Evals.Infrastructure;
+namespace Agents.Evals.Scenarios;
 
 /// <summary>
 /// The parts of the production agent's configuration that an evaluation has to reproduce.
@@ -19,14 +18,8 @@ namespace Agents.Evals.Infrastructure;
 /// nothing.
 /// </para>
 /// </remarks>
-public static class AgentContract
+internal static class WeatherTools
 {
-    /// <summary>The agent's name, as registered in production.</summary>
-    public static string Name => OptionsRegistration.AgentName;
-
-    /// <summary>The system instructions the agent runs with in production.</summary>
-    public static string Instructions => OptionsRegistration.AgentInstructions;
-
     /// <summary>Name of the forecast tool, as the model sees it.</summary>
     public const string WeatherToolName = nameof(WeatherForecast.GetWeatherForecast);
 
