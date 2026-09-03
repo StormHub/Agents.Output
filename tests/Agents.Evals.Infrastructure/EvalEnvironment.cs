@@ -1,26 +1,27 @@
+using System.ComponentModel.DataAnnotations;
 using Agents.Evals.Infrastructure.Probabilistic;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Agents.Evals.Infrastructure;
 
 /// <summary>
-/// Every knob both evaluation suites read from their environment, in one place.
+/// Binds <see cref="EvalOptions"/> once for the test process and hands it to both suites.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The two suites answer different questions — <c>Agents.Api.Evals</c> measures the Agent Framework
-/// agent, <c>Agents.Extensions.Evals</c> measures the chat pipeline underneath it — but they are
-/// pointed at the same deployment, the same endpoint and the same credential. A knob that means one
-/// thing in one suite and something else in the other is a trap, so there is one definition of each
-/// and one set of defaults.
-/// </para>
-/// <para>
-/// Values are layered lowest → highest precedence: in-memory defaults, then User Secrets
-/// (local-only, opt-in via <c>dotnet user-secrets set &lt;KEY&gt; &lt;VALUE&gt;</c>), then
+/// Sources are layered lowest → highest precedence: the <see cref="Defaults"/> table, then User
+/// Secrets (local-only, opt-in via <c>dotnet user-secrets set Eval:ApiKey &lt;VALUE&gt;</c>), then
 /// environment variables. The endpoint this repository points at is Azure OpenAI, which needs an
 /// API key, and a key does not belong in shell history or in source control — User Secrets is where
 /// it goes. Environment variables still win, so CI and scripted invocations behave the way an
 /// operator expects.
+/// </para>
+/// <para>
+/// Every value is defined by <see cref="EvalOptions"/> and defaulted by <see cref="Defaults"/>. The
+/// environment is a provider feeding that section under the standard <c>Eval__Knob</c> spelling, not
+/// a parallel set of knobs — so a value has one name, one type and one default whichever way it
+/// arrives.
 /// </para>
 /// <para>
 /// Because the secrets store belongs to <em>this</em> assembly, one
@@ -39,151 +40,110 @@ public static class EvalEnvironment
 
     private const string DefaultBaseUrl = "https://shared-openai.openai.azure.com";
 
+    /// <summary>
+    /// The whole default policy, as configuration rather than as scattered <c>??</c> fallbacks, so
+    /// the defaults are visible in one table and a missing one fails validation instead of quietly
+    /// resolving to <see langword="null"/>.
+    /// </summary>
+    /// <remarks>
+    /// The two directory defaults sit beside the running test binary; the execution name is stamped
+    /// here so every scenario in one run shares it.
+    /// </remarks>
+    private static Dictionary<string, string?> Defaults =>
+        new()
+        {
+            [Key(nameof(EvalOptions.LiveModelEnabled))] = "false",
+            [Key(nameof(EvalOptions.Model))] = DefaultModel,
+            [Key(nameof(EvalOptions.BaseUrl))] = DefaultBaseUrl,
+            [Key(nameof(EvalOptions.SampleSize))] = "35",
+            [Key(nameof(EvalOptions.QualityFloor))] = "3.0",
+            [Key(nameof(EvalOptions.CacheTimeToLive))] = "14.00:00:00",
+            [Key(nameof(EvalOptions.ReportFormat))] = nameof(EvalReportFormat.All),
+            [Key(nameof(EvalOptions.StorageRoot))] = Path.Combine(AppContext.BaseDirectory, "eval-store"),
+            [Key(nameof(EvalOptions.ReportDirectory))] = Path.Combine(AppContext.BaseDirectory, "eval-reports"),
+            [Key(nameof(EvalOptions.ExecutionName))] = $"local-{DateTime.UtcNow:yyyyMMdd-HHmmss}",
+        };
+
+    /// <summary>
+    /// The bound, validated options for this test process.
+    /// </summary>
+    /// <remarks>
+    /// Resolved once: static initialization runs on first access, under the CLR's type initializer,
+    /// so both suites read the same instance and the timestamped
+    /// <see cref="EvalOptions.ExecutionName"/> cannot drift between scenarios.
+    /// </remarks>
+    public static EvalOptions Current { get; } = Bind(BuildOperatorConfiguration());
+
+    /// <summary>
+    /// Layers <paramref name="source"/> over the <see cref="Defaults"/>, binds the
+    /// <see cref="EvalOptions.SectionName"/> section and validates the result.
+    /// </summary>
+    /// <param name="source">
+    /// Where the operator's values come from — User Secrets and the environment.
+    /// </param>
+    /// <exception cref="OptionsValidationException">
+    /// A knob is missing, malformed or out of range. Failing here matters more than failing later:
+    /// a suite that runs with a nonsensical floor or sample size still reports a verdict, and the
+    /// verdict is meaningless.
+    /// </exception>
+    private static EvalOptions Bind(IConfiguration source)
+    {
+        var options = new ConfigurationBuilder()
+            .AddInMemoryCollection(Defaults)
+            .AddConfiguration(source)
+            .Build()
+            .GetSection(EvalOptions.SectionName)
+            .Get<EvalOptions>() ?? new EvalOptions();
+
+        // The judge follows the deployment under test unless it is named, and has to follow the
+        // one actually configured — which is knowable only after binding.
+        if (string.IsNullOrWhiteSpace(options.JudgeModel))
+        {
+            options = options with { JudgeModel = options.Model };
+        }
+
+        return Validate(options);
+    }
+
     /// <remarks>
     /// <see cref="ConfigurationExtensions.AddUserSecrets(IConfigurationBuilder, System.Reflection.Assembly, bool, bool)"/>
     /// is called with <c>optional: true</c> so a machine that has never run
     /// <c>dotnet user-secrets set</c> for this project — the common case, and the only case in CI —
-    /// never throws building this. The offline tiers of both suites read nothing from here but the
-    /// report and store locations, so a missing or malformed secrets file cannot affect them.
+    /// never throws building this.
     /// </remarks>
-    private static readonly IConfiguration Configuration =
+    private static IConfiguration BuildOperatorConfiguration() =>
         new ConfigurationBuilder()
-            .AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["EVAL_MODEL"] = DefaultModel,
-                    ["EVAL_BASEURL"] = DefaultBaseUrl,
-                    ["EVAL_SAMPLE_SIZE"] = "35",
-                    ["EVAL_QUALITY_FLOOR"] = "3.0",
-                })
             .AddUserSecrets(typeof(EvalEnvironment).Assembly, optional: true)
             .AddEnvironmentVariables()
             .Build();
 
-    /// <summary>
-    /// Whether the tiers that call a real model are enabled. Set <c>EVAL_LIVE_MODEL=1</c> with a
-    /// reachable endpoint and an API key to opt in; without it they skip, so CI stays offline and
-    /// free.
-    /// </summary>
-    public static bool LiveModelEnabled => Configuration["EVAL_LIVE_MODEL"] is "1" or "true";
-
-    /// <summary>The deployment under evaluation. Recorded in reports so runs stay comparable.</summary>
-    public static string Model => Configuration["EVAL_MODEL"] ?? DefaultModel;
-
-    /// <summary>
-    /// The deployment that grades, where a suite uses a judge. Defaults to the deployment under
-    /// evaluation, which is the cheapest setup and the weakest one — a judge that shares the
-    /// system's blind spots will not see them. Set <c>EVAL_JUDGE_MODEL</c> to something stronger
-    /// once the scores start mattering.
-    /// </summary>
-    public static string JudgeModel => Configuration["EVAL_JUDGE_MODEL"] ?? Model;
-
-    /// <summary>Azure OpenAI endpoint serving both the system under test and the judge.</summary>
-    public static string BaseUrl => Configuration["EVAL_BASEURL"] ?? DefaultBaseUrl;
-
-    /// <summary>
-    /// Key for <see cref="BaseUrl"/>. The production registration rejects a blank key, so the live
-    /// tiers of both suites cannot start without one.
-    /// </summary>
-    public static string? ApiKey => Configuration["EVAL_API_KEY"];
-
-    /// <summary>
-    /// Runs per query where a suite gates on rates rather than on single runs.
-    /// </summary>
-    /// <remarks>
-    /// Rate gating needs a real sample: the default of 35 is the smallest sample in which a
-    /// flawless run clears a 90% floor on the lower bound of a 95% Wilson interval, with room to
-    /// absorb the occasional miss on the 80% floors below it.
-    /// </remarks>
-    public static int SampleSize =>
-        int.TryParse(Configuration["EVAL_SAMPLE_SIZE"], out var size) && size > 0 ? size : 35;
-
-    /// <summary>
-    /// The score a judged metric has to clear, out of 5.
-    /// </summary>
-    /// <remarks>
-    /// The Quality library's own default is 4.0. That is a defensible bar for a frontier model and
-    /// an unreachable one for a modest deployment — every run would be red, and a suite that is
-    /// always red stops being read. 3.0 is a starting point, to be moved once there is baseline data
-    /// for the deployment actually in use.
-    /// </remarks>
-    public static double QualityFloor =>
-        double.TryParse(Configuration["EVAL_QUALITY_FLOOR"], out var floor) ? floor : 3.0;
-
-    /// <summary>
-    /// Endpoint of the Azure AI Foundry project backing the content safety evaluators, e.g.
-    /// <c>https://[account].services.ai.azure.com/api/projects/[project]</c>. Unset means the safety
-    /// tier skips.
-    /// </summary>
-    public static string? SafetyEndpoint => Configuration["EVAL_SAFETY_ENDPOINT"];
-
-    /// <summary>Whether the safety tier has an endpoint to talk to.</summary>
-    public static bool SafetyEnabled => !string.IsNullOrWhiteSpace(SafetyEndpoint);
-
-    /// <summary>Where the MEAI result store lives. Point <c>dotnet aieval report</c> at this.</summary>
-    /// <remarks>
-    /// The default sits beside the running test binary, under <c>bin/</c>, which is awkward to point
-    /// a tool at — so every test prints the absolute path it used. Set <c>EVAL_STORE_DIR</c> to
-    /// somewhere stable to accumulate history, and to the same directory for both suites to gather
-    /// them into one report.
-    /// </remarks>
-    public static string StorageRoot =>
-        Configuration["EVAL_STORE_DIR"] ?? Path.Combine(AppContext.BaseDirectory, "eval-store");
-
-    /// <summary>
-    /// Names this run of the suite. Reports group and compare by execution, so set this to the CI
-    /// build number to line runs up; it otherwise falls back to a timestamp.
-    /// </summary>
-    /// <remarks>
-    /// Resolved once per process. Every scenario in one run has to share an execution name —
-    /// recomputing the timestamp per call would scatter a single run across as many executions as
-    /// there are scenarios, and the report would show no run at all, only fragments of one.
-    /// </remarks>
-    public static string ExecutionName { get; } =
-        Configuration["EVAL_EXECUTION_NAME"] ?? $"local-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
-
-    /// <summary>
-    /// How long a cached judge response stays valid. Long enough that re-running a red suite costs
-    /// nothing, short enough that a redeployed model does not keep serving stale verdicts.
-    /// </summary>
-    public static TimeSpan CacheTimeToLive => TimeSpan.FromDays(14);
-
-    /// <summary>Where <see cref="Probabilistic.EvalReport"/> writes. Defaults beside the test binary.</summary>
-    public static string ReportDirectory =>
-        Configuration["EVAL_REPORT_DIR"] ?? Path.Combine(AppContext.BaseDirectory, "eval-reports");
-
-    /// <summary>
-    /// Which report format(s) <see cref="Probabilistic.EvalReport.WriteAsync"/> emits. Set
-    /// <c>EVAL_REPORT_FORMAT</c> to <c>gate-summary</c>, <c>json</c>, <c>html</c>, or any
-    /// comma-separated combination; defaults to <c>all</c>.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    /// The value names a format that does not exist. Failing loudly matters more here than
-    /// elsewhere: silently ignoring a typo would produce a run that measured everything and
-    /// recorded none of it.
-    /// </exception>
-    public static EvalReportFormat ReportFormat
+    private static EvalOptions Validate(EvalOptions options)
     {
-        get
+        var failures = new List<ValidationResult>();
+        if (Validator.TryValidateObject(options, new ValidationContext(options), failures, validateAllProperties: true))
         {
-            var raw = Configuration["EVAL_REPORT_FORMAT"] ?? "all";
-            var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            var format = default(EvalReportFormat);
-            foreach (var part in parts)
-            {
-                format |= part.ToLowerInvariant() switch
-                {
-                    "all" => EvalReportFormat.All,
-                    "gate-summary" => EvalReportFormat.GateSummary,
-                    "json" => EvalReportFormat.Json,
-                    "html" => EvalReportFormat.Html,
-                    _ => throw new InvalidOperationException(
-                        $"Unrecognised EVAL_REPORT_FORMAT value '{part}'. Expected one or more of: gate-summary, json, html, all."),
-                };
-            }
-
-            return format == default ? EvalReportFormat.All : format;
+            return options;
         }
+
+        throw new OptionsValidationException(
+            EvalOptions.SectionName,
+            typeof(EvalOptions),
+            failures.Select(Describe));
     }
+
+    /// <summary>
+    /// States the failure and names the variable that fixes it, since the member name alone
+    /// ("Model") does not tell an operator what to set.
+    /// </summary>
+    private static string Describe(ValidationResult failure)
+    {
+        var member = failure.MemberNames.FirstOrDefault();
+
+        return member is null
+            ? failure.ErrorMessage ?? $"{nameof(EvalOptions)} is invalid."
+            : $"{failure.ErrorMessage} Set {EvalOptions.SectionName}__{member} (or {Key(member)} in user secrets).";
+    }
+
+    /// <summary>The configuration key a knob binds from, e.g. <c>Eval:Model</c>.</summary>
+    private static string Key(string name) => $"{EvalOptions.SectionName}:{name}";
 }

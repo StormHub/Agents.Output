@@ -90,9 +90,9 @@ public enum EvalReportFormat
 /// A pass/fail verdict answers "should this build go red". It does not answer "is the agent
 /// getting better or worse", which is the question evaluation exists for. Recording each run
 /// keeps that answer available: the report is the deliverable, the gate is a side effect.
-/// Set <c>EVAL_REPORT_DIR</c> to control where reports land, and <c>EVAL_REPORT_FORMAT</c>
-/// (<c>gate-summary</c>, <c>json</c>, <c>html</c>, or <c>all</c> — the default) to control which
-/// of these get written.
+/// Set <see cref="EvalOptions.ReportDirectory"/> to control where reports land, and
+/// <see cref="EvalOptions.ReportFormat"/> (<c>GateSummary</c>, <c>Json</c>, <c>Html</c>, or
+/// <c>All</c> — the default) to control which of these get written.
 /// </remarks>
 /// <remarks>
 /// A test file typically measures several scenarios (e.g. <c>LiveModelEvalTests</c> has three),
@@ -167,7 +167,7 @@ public static class EvalReport
         EvalReportFormat format = EvalReportFormat.All,
         CancellationToken cancellationToken = default)
     {
-        var directory = EvalEnvironment.ReportDirectory;
+        var directory = EvalEnvironment.Current.ReportDirectory;
         Directory.CreateDirectory(directory);
 
         var stamp = DateTimeOffset.UtcNow;
@@ -194,8 +194,8 @@ public static class EvalReport
         {
             // Both framework writers render the same combined transcript, so the accumulated
             // state is read back once (from the .eval.json this same code wrote) and reused for
-            // both. This assumes EVAL_REPORT_FORMAT stays constant for the life of the process —
-            // true today since it's read once from the environment — so Json is always among the
+            // both. This assumes the configured format stays constant for the life of the process —
+            // true today since it's bound once into EvalOptions — so Json is always among the
             // formats whenever Html is, and the .eval.json this reads always reflects every
             // scenario measured so far.
             var jsonPath = Path.Combine(directory, $"{baseName}.eval.json");

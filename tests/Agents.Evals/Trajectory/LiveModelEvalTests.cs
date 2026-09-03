@@ -17,15 +17,15 @@ namespace Agents.Evals.Trajectory;
 /// </para>
 /// <para>
 /// Every run writes a report, and that report — not the red/green — is the point. Set
-/// <c>EVAL_LIVE_MODEL=1</c> with Ollama running to enable, <c>EVAL_SAMPLE_SIZE</c> to change the
-/// sample. A full run makes several hundred model calls, so this belongs on a schedule rather
+/// <c>Eval__LiveModelEnabled=true</c> with Ollama running to enable, <c>Eval__SampleSize</c> to
+/// change the sample. A full run makes several hundred model calls, so this belongs on a schedule rather
 /// than on every pull request.
 /// </para>
 /// </remarks>
 public sealed class LiveModelEvalTests(ITestOutputHelper output)
 {
     private const string SkipReason =
-        "Live model evaluation is off. Set EVAL_LIVE_MODEL=1 with api configurations to enable it.";
+        "Live model evaluation is off. Set Eval__LiveModelEnabled=true with api configurations to enable it.";
 
     /// <summary>
     /// What each check has to clear.
@@ -58,7 +58,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task WeatherQueries_ClearTheirFloors()
     {
-        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -80,7 +80,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task DateRelativeQueries_AreGroundedOnTheCalendarTool()
     {
-        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -120,7 +120,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     [Fact]
     public async Task OverallConsistency_IsRecorded()
     {
-        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var outcome = await MeasureAsync(
             "overall-consistency",
@@ -150,7 +150,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
             queries,
             evaluator,
             evalName: scenario,
-            numRepetitions: EvalEnvironment.SampleSize);
+            numRepetitions: EvalEnvironment.Current.SampleSize);
 
         var rates = EvalRates.PerCheck(results);
         var outcome = EvalGate.Evaluate(rates, effectiveFloors);
@@ -162,10 +162,10 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
             outcome,
             results,
             effectiveFloors,
-            EvalEnvironment.Model,
-            EvalEnvironment.ReportFormat);
+            EvalEnvironment.Current.Model,
+            EvalEnvironment.Current.ReportFormat);
 
-        output.WriteLine($"{scenario} — {results.Total} runs of {EvalEnvironment.Model}");
+        output.WriteLine($"{scenario} — {results.Total} runs of {EvalEnvironment.Current.Model}");
         output.WriteLine(outcome.Report());
         output.WriteLine($"Reports: {string.Join(", ", paths)}");
 
