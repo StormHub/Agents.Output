@@ -5,7 +5,7 @@ A .NET 10 API that hosts a Microsoft Agent Framework chat agent and exposes it o
 ## Structure
 
 - `src/Agents.Api`: ASP.NET Core API host exposing the chat agent over `/chat` (AG-UI) with a `CalendarDay` and `WeatherForecast` tool.
-- `tests/Agents.Evals.Infrastructure`: fixtures, `EVAL_*` configuration and the rate/gate arithmetic shared by both evaluation suites, plus its own tests for that arithmetic — see its [README](tests/Agents.Evals.Infrastructure/README.md).
+- `tests/Agents.Evals.Infrastructure`: fixtures, strongly-typed `EvalOptions` configuration and the rate/gate arithmetic shared by both evaluation suites, plus its own tests for that arithmetic — see its [README](tests/Agents.Evals.Infrastructure/README.md).
 - `tests/Agents.Api.Evals`: agent evaluation suite — see its [README](tests/Agents.Api.Evals/README.md).
 - `tests/Agents.Extensions.Evals`: `Microsoft.Extensions.AI.Evaluation` suite for the chat pipeline underneath the agent — see its [README](tests/Agents.Extensions.Evals/README.md).
 - `Agents.sln`: solution file referencing the projects under `src` and `tests`.
@@ -28,11 +28,11 @@ dotnet run --project tests/Agents.Extensions.Evals      # is the answer relevant
 dotnet run --project tests/Agents.Evals.Infrastructure  # is the gate arithmetic itself correct?
 ```
 
-The two suites skip their live tiers unless `EVAL_LIVE_MODEL=1` is set, so an unconfigured run is
-offline, deterministic and free. They share their scenarios, scripted client, canned tools, `EVAL_*`
-configuration and rate/gate arithmetic through `tests/Agents.Evals.Infrastructure` — including one
-User Secrets store, so
-`dotnet user-secrets set EVAL_API_KEY "..." --project tests/Agents.Evals.Infrastructure` configures
+The two suites skip their live tiers unless `Eval__LiveModelEnabled=true` is set, so an unconfigured
+run is offline, deterministic and free. They share their scenarios, scripted client, canned tools,
+`EvalOptions` configuration and rate/gate arithmetic through `tests/Agents.Evals.Infrastructure` —
+including one User Secrets store, so
+`dotnet user-secrets set Eval:ApiKey "..." --project tests/Agents.Evals.Infrastructure` configures
 the live tiers of both.
 
 What each suite keeps to itself is the policy: which checks exist and what floor each has to clear.

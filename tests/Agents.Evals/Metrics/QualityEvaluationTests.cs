@@ -18,24 +18,24 @@ namespace Agents.Evals.Metrics;
 /// stayed inside what the tools returned, whether the tool call actually served the request.
 /// </para>
 /// <para>
-/// Set <c>EVAL_LIVE_MODEL=1</c> with an endpoint and key configured to enable. Judge responses are
-/// cached, so re-running an unchanged scenario costs nothing.
+/// Set <c>Eval__LiveModelEnabled=true</c> with an endpoint and key configured to enable. Judge
+/// responses are cached, so re-running an unchanged scenario costs nothing.
 /// </para>
 /// </remarks>
 public sealed class QualityEvaluationTests(ITestOutputHelper output)
 {
     private const string SkipReason =
-        "Live model evaluation is off. Set EVAL_LIVE_MODEL=1, with EVAL_BASEURL and EVAL_API_KEY "
-        + "pointing at a reachable deployment, to enable it.";
+        "Live model evaluation is off. Set Eval__LiveModelEnabled=true, with Eval__BaseUrl and "
+        + "Eval__ApiKey pointing at a reachable deployment, to enable it.";
 
     /// <summary>
     /// Grades each answer on relevance, coherence, fluency, groundedness and tool use, against the
-    /// floor in <see cref="EvalEnvironment.QualityFloor"/>.
+    /// floor in <see cref="EvalOptions.QualityFloor"/>.
     /// </summary>
     [Fact]
     public async Task Answers_ClearTheQualityFloor()
     {
-        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -59,7 +59,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output)
             // tool call, so say plainly what happened before the evaluator's diagnostic does.
             Assert.True(
                 response.Messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Any(),
-                $"{EvalEnvironment.Model} answered \"{scenario.Query}\" without calling a tool, so there is nothing to grade.");
+                $"{EvalEnvironment.Current.Model} answered \"{scenario.Query}\" without calling a tool, so there is nothing to grade.");
 
             var result = await scenarioRun.EvaluateAsync(
                 messages,
@@ -94,7 +94,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output)
     [Fact]
     public async Task Answers_MatchTheReferenceAnswer()
     {
-        Assert.SkipUnless(EvalEnvironment.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var cancellationToken = TestContext.Current.CancellationToken;
 

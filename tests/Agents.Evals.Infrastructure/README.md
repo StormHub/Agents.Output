@@ -8,7 +8,7 @@ The fixtures and the environment both evaluation suites share.
 | What is asked | `WeatherScenarios`, `WeatherScenario` | queries with no scripted counterpart |
 | What the model says offline | `ScriptedChatClient` | — |
 | What the tools return | `StubWeatherTools`, `ToolResults` | — |
-| Where it points | `EvalEnvironment`, `EvalServices` | — |
+| Where it points | `EvalOptions`, `EvalEnvironment`, `EvalServices` | — |
 | How a sample becomes a verdict | `Probabilistic/` — rates, Wilson bounds, floor comparison, the report | — |
 | **Which checks exist, and what floor each gets** | — | **every check, floor, evaluator and assertion** |
 
@@ -23,11 +23,11 @@ measurements of the same system and start being one measurement counted twice.
 ## This project is also a test suite
 
 `Probabilistic/` decides whether a live run goes red. Gating on arithmetic nobody checked is how a
-suite ends up quietly asserting nothing, so `EvalGateTests` lives beside it rather than in whichever
-suite happens to call it:
+suite ends up quietly asserting nothing, so `EvalGateTests` lives in `Agents.Evals.Infrastructure.Tests`
+rather than in whichever suite happens to call it:
 
 ```bash
-dotnet run --project tests/Agents.Evals.Infrastructure   # 12 tests, no model, no network
+dotnet run --project tests/Agents.Evals.Infrastructure.Tests   # gate arithmetic, no model, no network
 ```
 
 These are the strictest tests in the repository, and the only ones that are genuinely
@@ -47,10 +47,10 @@ the `IChatClient` pipeline underneath it. Different libraries, different questio
 agent, the same tool contract, the same deployment and the same credential.
 
 Before this project each suite carried its own copy of the scripted client, the canned tools, the
-scenario record and the `EVAL_*` layering. Four files were duplicates modulo comments, and the two
-copies had already drifted: `EVAL_BASEURL` defaulted to a local Ollama endpoint in one suite and to
-the Azure endpoint in the other, so the same variable meant two different things depending on which
-suite you ran. That is the failure mode this project exists to prevent — a copy that drifts makes a
+scenario record and the configuration layering. Four files were duplicates modulo comments, and the
+two copies had already drifted: the base URL defaulted to a local Ollama endpoint in one suite and
+to the Azure endpoint in the other, so the same variable meant two different things depending on
+which suite you ran. That is the failure mode this project exists to prevent — a copy that drifts makes a
 suite measure something the API never does.
 
 `Probabilistic/` arrived later, from `Agents.Api.Evals`. It was never agent-specific: `CheckRate`
@@ -60,36 +60,60 @@ layer, so it belongs where the second suite can reach it.
 
 ## Configuration
 
-Every knob resolves through one layered `IConfiguration`: in-memory defaults → User Secrets →
-environment variables. The secrets store belongs to *this* assembly, so one command configures both
-suites:
+Every knob is a property on `EvalOptions`, bound once from a layered `IConfiguration`: an in-memory
+defaults table → User Secrets → environment variables. The environment is a *source* of these
+values, not their definition — a knob has one name, one type and one default whichever way it
+arrives, and `EvalEnvironment.Current` is the bound, validated result the suites read:
 
-```bash
-dotnet user-secrets set EVAL_API_KEY "..." --project tests/Agents.Evals.Infrastructure
+```csharp
+var floor = EvalEnvironment.Current.QualityFloor;   // double, not a parsed string
 ```
 
-| Variable | Default | Read by |
-|---|---|---|
-| `EVAL_LIVE_MODEL` | unset (live tiers skipped) | both |
-| `EVAL_MODEL` | `gpt-4.1-dz-1` | both |
-| `EVAL_BASEURL` | `https://shared-openai.openai.azure.com` | both |
-| `EVAL_API_KEY` | unset — required by the live tiers | both |
-| `EVAL_SAMPLE_SIZE` | `35` | `Agents.Api.Evals` |
-| `EVAL_JUDGE_MODEL` | `EVAL_MODEL` | `Agents.Extensions.Evals` |
-| `EVAL_QUALITY_FLOOR` | `3.0` out of 5 | `Agents.Extensions.Evals` |
-| `EVAL_SAFETY_ENDPOINT` | unset (safety tier skipped) | `Agents.Extensions.Evals` |
-| `EVAL_STORE_DIR` | `eval-store/` beside the test binary | `Agents.Extensions.Evals` |
-| `EVAL_EXECUTION_NAME` | `local-<timestamp>` | `Agents.Extensions.Evals` |
-| `EVAL_REPORT_DIR` | `eval-reports/` beside the test binary | `Agents.Api.Evals` |
-| `EVAL_REPORT_FORMAT` | `all` (`gate-summary`, `json`, `html`, comma-separated) | `Agents.Api.Evals` |
+Values bind from the `Eval` section, so the standard spellings apply: `Eval__SampleSize` as an
+environment variable, `Eval:SampleSize` in User Secrets. The secrets store belongs to *this*
+assembly, so one command configures both suites:
 
-Every one of them is now defined here — there is no second place to look. The defaults for
-`EVAL_MODEL` and `EVAL_BASEURL` match `Agents.Api`'s own `appsettings.json`, so an unconfigured run
-measures the deployment the API actually uses.
+```bash
+dotnet user-secrets set Eval:ApiKey "..." --project tests/Agents.Evals.Infrastructure
+```
+
+| Property | Environment variable | Default | Read by |
+|---|---|---|---|
+| `LiveModelEnabled` | `Eval__LiveModelEnabled` | `false` (live tiers skipped) | both |
+| `Model` | `Eval__Model` | `gpt-4.1-dz-1` | both |
+| `BaseUrl` | `Eval__BaseUrl` | `https://shared-openai.openai.azure.com` | both |
+| `ApiKey` | `Eval__ApiKey` | unset — required by the live tiers | both |
+| `SampleSize` | `Eval__SampleSize` | `35` | `Agents.Api.Evals` |
+| `JudgeModel` | `Eval__JudgeModel` | follows `Model` | `Agents.Extensions.Evals` |
+| `QualityFloor` | `Eval__QualityFloor` | `3.0` out of 5 | `Agents.Extensions.Evals` |
+| `SafetyEndpoint` | `Eval__SafetyEndpoint` | unset (safety tier skipped) | `Agents.Extensions.Evals` |
+| `StorageRoot` | `Eval__StorageRoot` | `eval-store/` beside the test binary | `Agents.Extensions.Evals` |
+| `ExecutionName` | `Eval__ExecutionName` | `local-<timestamp>` | `Agents.Extensions.Evals` |
+| `CacheTimeToLive` | `Eval__CacheTimeToLive` | `14.00:00:00` | `Agents.Extensions.Evals` |
+| `ReportDirectory` | `Eval__ReportDirectory` | `eval-reports/` beside the test binary | `Agents.Api.Evals` |
+| `ReportFormat` | `Eval__ReportFormat` | `All` (`GateSummary`, `Json`, `Html`, comma-separated) | `Agents.Api.Evals` |
+
+Every one of them is now defined here — there is no second place to look. The defaults for `Model`
+and `BaseUrl` match `Agents.Api`'s own `appsettings.json`, so an unconfigured run measures the
+deployment the API actually uses.
 
 The "read by" column records who happens to consume each knob today, not a restriction. A knob only
 one suite reads is still defined once and layered the same way, so it cannot come to mean two
-things the way `EVAL_BASEURL` did.
+things the way `BaseUrl` did.
+
+### Why the options object rather than reads at the point of use
+
+Types and defaults live on `EvalOptions`, so `SampleSize` is an `int` everywhere and
+`ReportFormat` is the flags enum — parsing, defaulting and range checking happen once, at the edge,
+instead of at each call site. The whole object is validated on load with DataAnnotations
+(`[Required]`, `[Range]`, `[Url]`), and a bad value throws an `OptionsValidationException` naming
+the variable to set. A suite that runs with a nonsensical floor still reports a verdict, and the
+verdict is meaningless — so a nonsensical floor has to fail before the run, not during it.
+
+> **Renamed.** These knobs were previously read as flat `EVAL_*` variables (`EVAL_SAMPLE_SIZE`,
+> `EVAL_API_KEY`, …). Those names are no longer read — the section spellings above replace them.
+> Two values also changed shape: `Eval__LiveModelEnabled` takes `true`, not `1`, and
+> `Eval__ReportFormat` takes the enum member names (`GateSummary`) rather than `gate-summary`.
 
 ## Reaching into `Agents.Api`
 

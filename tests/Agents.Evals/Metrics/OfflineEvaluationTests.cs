@@ -88,11 +88,11 @@ public sealed class OfflineEvaluationTests(ITestOutputHelper output)
 
         var result = await EvaluateAsync(WeatherScenarios.Tokyo, scenarioName, cancellationToken);
 
-        var store = new DiskBasedResultStore(EvalEnvironment.StorageRoot);
+        var store = new DiskBasedResultStore(EvalEnvironment.Current.StorageRoot);
         var stored = new List<ScenarioRunResult>();
 
         await foreach (var record in store.ReadResultsAsync(
-                           EvalEnvironment.ExecutionName,
+                           EvalEnvironment.Current.ExecutionName,
                            scenarioName,
                            cancellationToken: cancellationToken))
         {
@@ -111,7 +111,7 @@ public sealed class OfflineEvaluationTests(ITestOutputHelper output)
         Assert.Contains(persisted.ModelResponse.Messages, message => message.Contents.Count > 0);
 
         output.WriteLine(
-            $"Read back {persisted.ScenarioName} / {persisted.IterationName} from {EvalEnvironment.StorageRoot}");
+            $"Read back {persisted.ScenarioName} / {persisted.IterationName} from {EvalEnvironment.Current.StorageRoot}");
     }
 
     private static async Task<EvaluationResult> EvaluateAsync(

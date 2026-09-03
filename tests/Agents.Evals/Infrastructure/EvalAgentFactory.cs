@@ -43,6 +43,6 @@ internal static class EvalAgentFactory
     /// </remarks>
     public static ChatClientAgent CreateLive() =>
         EvalServices
-            .ForLiveModel(EvalEnvironment.Model, withProductionTools: true)
+            .ForLiveModel(EvalEnvironment.Current.Model, withProductionTools: true)
             .GetRequiredService<ChatClientAgent>();
 }

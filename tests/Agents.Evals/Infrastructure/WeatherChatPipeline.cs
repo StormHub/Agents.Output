@@ -49,7 +49,7 @@ internal static class WeatherChatPipeline
 
     /// <summary>The pipeline over the live deployment. Calls Azure OpenAI for real.</summary>
     public static IChatClient CreateLive() =>
-        ResolveChatClient(EvalEnvironment.Model)
+        ResolveChatClient(EvalEnvironment.Current.Model)
             .AsBuilder()
             .UseFunctionInvocation()
             .Build();
@@ -58,7 +58,7 @@ internal static class WeatherChatPipeline
     /// The deployment that grades. No function invocation: the judge is asked to score text, never
     /// to call tools.
     /// </summary>
-    public static IChatClient CreateJudge() => ResolveChatClient(EvalEnvironment.JudgeModel);
+    public static IChatClient CreateJudge() => ResolveChatClient(EvalEnvironment.Current.JudgeModel);
 
     /// <summary>
     /// Runs one query and returns both halves an evaluator needs: the conversation that produced
