@@ -3,6 +3,15 @@ using Microsoft.Extensions.AI;
 
 namespace Agents.Evals.Scenarios;
 
+internal static class WeatherTools
+{
+    /// <summary>Name of the forecast tool, as the model sees it.</summary>
+    public const string WeatherToolName = nameof(WeatherForecast.GetWeatherForecast);
+
+    /// <summary>Name of the calendar tool, as the model sees it.</summary>
+    public const string CalendarToolName = nameof(CalendarDay.GetToday);
+}
+
 /// <summary>
 /// Stand-ins for the production tools that return canned data instead of calling Open-Meteo.
 /// </summary>
@@ -20,7 +29,7 @@ namespace Agents.Evals.Scenarios;
 /// answer against that was not itself fetched from the same source.
 /// </para>
 /// </remarks>
-public static class StubWeatherTools
+internal static class StubWeatherTools
 {
     /// <summary>Fixed "today" so forecast labels and date assertions stay stable across runs.</summary>
     public static readonly DateOnly FixedToday = new(2026, 3, 14);

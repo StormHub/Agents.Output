@@ -22,7 +22,7 @@ public sealed class WeatherResult
     
     public required string WindDirection { get; init; } // "N", "NE", "E", etc.
     
-    public List<ForecastDay> Forecast { get; set; } = [];
+    public IReadOnlyCollection<ForecastDay> Forecast { get; set; } = [];
 }
 
 public sealed class ForecastDay

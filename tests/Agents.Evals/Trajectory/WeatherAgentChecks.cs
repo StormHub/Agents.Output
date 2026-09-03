@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Agents.Evals.Infrastructure;
 using Agents.Evals.Scenarios;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
