@@ -17,8 +17,8 @@ namespace Agents.Evals.Trajectory;
 /// </remarks>
 public sealed class ScriptedAgentEvalTests
 {
-    // The cases come from Agents.Evals.Infrastructure, so the same three scenarios are measured
-    // here and in Agents.Extensions.Evals — one at the agent layer, one at the pipeline beneath it.
+    // The cases are shared with the Metrics suite, so the same three scenarios are measured twice
+    // — here at the agent layer, and there at the pipeline beneath it.
     private static readonly WeatherScenario TokyoScenario = WeatherScenarios.Tokyo;
     private static readonly WeatherScenario ParisScenario = WeatherScenarios.Paris;
 

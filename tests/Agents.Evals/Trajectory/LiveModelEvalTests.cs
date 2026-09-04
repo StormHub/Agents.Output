@@ -17,7 +17,7 @@ namespace Agents.Evals.Trajectory;
 /// </para>
 /// <para>
 /// Every run writes a report, and that report — not the red/green — is the point. Set
-/// <c>EvaluationOptions__LiveModelEnabled=true</c> with Ollama running to enable,
+/// <c>EvaluationOptions__LiveModelEnabled=true</c>, with an endpoint and key configured, to enable;
 /// <c>EvaluationOptions__SampleSize</c> to change the sample. A full run makes several hundred
 /// model calls, so this belongs on a schedule rather than on every pull request.
 /// </para>

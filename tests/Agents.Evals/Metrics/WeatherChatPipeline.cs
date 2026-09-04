@@ -14,8 +14,8 @@ namespace Agents.Evals.Metrics;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is not the Agent Framework agent that <c>Agents.Api</c> hosts, and it is not what
-/// <c>Agents.Api.Evals</c> measures. It is the layer underneath: the instructions are production's
+/// This is not the Agent Framework agent that <c>Agents.Api</c> hosts, and it is not what the
+/// <c>Trajectory</c> suite measures. It is the layer underneath: the instructions are production's
 /// and the chat client is built by production's own DI registration, driven through MEAI's
 /// abstractions, because that is the shape the <c>Microsoft.Extensions.AI.Evaluation</c> libraries
 /// evaluate — they take <see cref="ChatMessage"/>s and a <see cref="ChatResponse"/> and know

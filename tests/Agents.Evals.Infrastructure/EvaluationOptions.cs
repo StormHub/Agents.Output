@@ -8,9 +8,9 @@ namespace Agents.Evals.Infrastructure;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The two suites answer different questions — <c>Agents.Api.Evals</c> measures the Agent Framework
-/// agent, <c>Agents.Extensions.Evals</c> measures the chat pipeline underneath it — but they are
-/// pointed at the same deployment, the same endpoint and the same credential. A knob that means one
+/// The two suites answer different questions — <c>Trajectory</c> measures the Agent Framework
+/// agent, <c>Metrics</c> measures the chat pipeline underneath it — but they are pointed at the
+/// same deployment, the same endpoint and the same credential. A knob that means one
 /// thing in one suite and something else in the other is a trap, so there is one definition of each
 /// and one set of defaults.
 /// </para>
