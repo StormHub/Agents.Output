@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 namespace Agents.Evals.Infrastructure;
 
 /// <summary>
-/// Binds <see cref="EvalOptions"/> once for the test process and hands it to both suites.
+/// Binds <see cref="EvaluationOptions"/> once for the test process and hands it to both suites.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -18,10 +18,10 @@ namespace Agents.Evals.Infrastructure;
 /// operator expects.
 /// </para>
 /// <para>
-/// Every value is defined by <see cref="EvalOptions"/> and defaulted by <see cref="Defaults"/>. The
-/// environment is a provider feeding that section under the standard <c>Eval__Knob</c> spelling, not
-/// a parallel set of knobs — so a value has one name, one type and one default whichever way it
-/// arrives.
+/// Every value is defined by <see cref="EvaluationOptions"/> and defaulted by
+/// <see cref="Defaults"/>. The environment is a provider feeding that section under the standard
+/// <c>Eval__Knob</c> spelling, not a parallel set of knobs — so a value has one name, one type and
+/// one default whichever way it arrives.
 /// </para>
 /// <para>
 /// Because the secrets store belongs to <em>this</em> assembly, one
@@ -52,16 +52,16 @@ public static class EvalEnvironment
     private static Dictionary<string, string?> Defaults =>
         new()
         {
-            [Key(nameof(EvalOptions.LiveModelEnabled))] = "false",
-            [Key(nameof(EvalOptions.Model))] = DefaultModel,
-            [Key(nameof(EvalOptions.BaseUrl))] = DefaultBaseUrl,
-            [Key(nameof(EvalOptions.SampleSize))] = "35",
-            [Key(nameof(EvalOptions.QualityFloor))] = "3.0",
-            [Key(nameof(EvalOptions.CacheTimeToLive))] = "14.00:00:00",
-            [Key(nameof(EvalOptions.ReportFormat))] = nameof(EvalReportFormat.All),
-            [Key(nameof(EvalOptions.StorageRoot))] = Path.Combine(AppContext.BaseDirectory, "eval-store"),
-            [Key(nameof(EvalOptions.ReportDirectory))] = Path.Combine(AppContext.BaseDirectory, "eval-reports"),
-            [Key(nameof(EvalOptions.ExecutionName))] = $"local-{DateTime.UtcNow:yyyyMMdd-HHmmss}",
+            [Key(nameof(EvaluationOptions.LiveModelEnabled))] = "false",
+            [Key(nameof(EvaluationOptions.Model))] = DefaultModel,
+            [Key(nameof(EvaluationOptions.BaseUrl))] = DefaultBaseUrl,
+            [Key(nameof(EvaluationOptions.SampleSize))] = "35",
+            [Key(nameof(EvaluationOptions.QualityFloor))] = "3.0",
+            [Key(nameof(EvaluationOptions.CacheTimeToLive))] = "14.00:00:00",
+            [Key(nameof(EvaluationOptions.ReportFormat))] = nameof(EvalReportFormat.All),
+            [Key(nameof(EvaluationOptions.StorageRoot))] = Path.Combine(AppContext.BaseDirectory, "eval-store"),
+            [Key(nameof(EvaluationOptions.ReportDirectory))] = Path.Combine(AppContext.BaseDirectory, "eval-reports"),
+            [Key(nameof(EvaluationOptions.ExecutionName))] = $"local-{DateTime.UtcNow:yyyyMMdd-HHmmss}",
         };
 
     /// <summary>
@@ -70,13 +70,13 @@ public static class EvalEnvironment
     /// <remarks>
     /// Resolved once: static initialization runs on first access, under the CLR's type initializer,
     /// so both suites read the same instance and the timestamped
-    /// <see cref="EvalOptions.ExecutionName"/> cannot drift between scenarios.
+    /// <see cref="EvaluationOptions.ExecutionName"/> cannot drift between scenarios.
     /// </remarks>
-    public static EvalOptions Current { get; } = Bind(BuildOperatorConfiguration());
+    public static EvaluationOptions Current { get; } = Bind(BuildOperatorConfiguration());
 
     /// <summary>
     /// Layers <paramref name="source"/> over the <see cref="Defaults"/>, binds the
-    /// <see cref="EvalOptions.SectionName"/> section and validates the result.
+    /// <see cref="EvaluationOptions.SectionName"/> section and validates the result.
     /// </summary>
     /// <param name="source">
     /// Where the operator's values come from — User Secrets and the environment.
@@ -86,14 +86,14 @@ public static class EvalEnvironment
     /// a suite that runs with a nonsensical floor or sample size still reports a verdict, and the
     /// verdict is meaningless.
     /// </exception>
-    private static EvalOptions Bind(IConfiguration source)
+    private static EvaluationOptions Bind(IConfiguration source)
     {
         var options = new ConfigurationBuilder()
             .AddInMemoryCollection(Defaults)
             .AddConfiguration(source)
             .Build()
-            .GetSection(EvalOptions.SectionName)
-            .Get<EvalOptions>() ?? new EvalOptions();
+            .GetSection(EvaluationOptions.SectionName)
+            .Get<EvaluationOptions>() ?? new EvaluationOptions();
 
         // The judge follows the deployment under test unless it is named, and has to follow the
         // one actually configured — which is knowable only after binding.
@@ -117,7 +117,7 @@ public static class EvalEnvironment
             .AddEnvironmentVariables()
             .Build();
 
-    private static EvalOptions Validate(EvalOptions options)
+    private static EvaluationOptions Validate(EvaluationOptions options)
     {
         var failures = new List<ValidationResult>();
         if (Validator.TryValidateObject(options, new ValidationContext(options), failures, validateAllProperties: true))
@@ -126,8 +126,8 @@ public static class EvalEnvironment
         }
 
         throw new OptionsValidationException(
-            EvalOptions.SectionName,
-            typeof(EvalOptions),
+            EvaluationOptions.SectionName,
+            typeof(EvaluationOptions),
             failures.Select(Describe));
     }
 
@@ -140,10 +140,10 @@ public static class EvalEnvironment
         var member = failure.MemberNames.FirstOrDefault();
 
         return member is null
-            ? failure.ErrorMessage ?? $"{nameof(EvalOptions)} is invalid."
-            : $"{failure.ErrorMessage} Set {EvalOptions.SectionName}__{member} (or {Key(member)} in user secrets).";
+            ? failure.ErrorMessage ?? $"{nameof(EvaluationOptions)} is invalid."
+            : $"{failure.ErrorMessage} Set {EvaluationOptions.SectionName}__{member} (or {Key(member)} in user secrets).";
     }
 
     /// <summary>The configuration key a knob binds from, e.g. <c>Eval:Model</c>.</summary>
-    private static string Key(string name) => $"{EvalOptions.SectionName}:{name}";
+    private static string Key(string name) => $"{EvaluationOptions.SectionName}:{name}";
 }

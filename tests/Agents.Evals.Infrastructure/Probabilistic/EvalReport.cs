@@ -90,8 +90,8 @@ public enum EvalReportFormat
 /// A pass/fail verdict answers "should this build go red". It does not answer "is the agent
 /// getting better or worse", which is the question evaluation exists for. Recording each run
 /// keeps that answer available: the report is the deliverable, the gate is a side effect.
-/// Set <see cref="EvalOptions.ReportDirectory"/> to control where reports land, and
-/// <see cref="EvalOptions.ReportFormat"/> (<c>GateSummary</c>, <c>Json</c>, <c>Html</c>, or
+/// Set <see cref="EvaluationOptions.ReportDirectory"/> to control where reports land, and
+/// <see cref="EvaluationOptions.ReportFormat"/> (<c>GateSummary</c>, <c>Json</c>, <c>Html</c>, or
 /// <c>All</c> — the default) to control which of these get written.
 /// </remarks>
 /// <remarks>
@@ -195,7 +195,7 @@ public static class EvalReport
             // Both framework writers render the same combined transcript, so the accumulated
             // state is read back once (from the .eval.json this same code wrote) and reused for
             // both. This assumes the configured format stays constant for the life of the process —
-            // true today since it's bound once into EvalOptions — so Json is always among the
+            // true today since it's bound once into EvaluationOptions — so Json is always among the
             // formats whenever Html is, and the .eval.json this reads always reflects every
             // scenario measured so far.
             var jsonPath = Path.Combine(directory, $"{baseName}.eval.json");

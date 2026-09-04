@@ -20,7 +20,7 @@ namespace Agents.Evals.Infrastructure;
 /// <see cref="EvalEnvironment"/> for the providers that feed it and the order they are layered in.
 /// </para>
 /// </remarks>
-public sealed record EvalOptions
+public sealed record EvaluationOptions
 {
     /// <summary>
     /// The configuration section these bind from, so an environment variable spells out as
@@ -63,7 +63,7 @@ public sealed record EvalOptions
     /// </summary>
     /// <remarks>
     /// Not <see cref="RequiredAttribute"/>: the offline tiers are the common case and the only case
-    /// in CI, and they never call an endpoint. <see cref="EvalServices.ForLiveModel"/> is where a
+    /// in CI, and they never call an endpoint. <see cref="EvaluationSetup.ForLiveModel"/> is where a
     /// missing key becomes an error, because that is the first point at which it matters.
     /// </remarks>
     public string? ApiKey { get; init; }
@@ -155,7 +155,7 @@ public sealed record EvalOptions
     /// test log. This prints what identifies a run and says only whether the key is present.
     /// </remarks>
     public override string ToString() =>
-        $"{nameof(EvalOptions)} {{ {nameof(Model)} = {Model}, {nameof(JudgeModel)} = {JudgeModel}, "
+        $"{nameof(EvaluationOptions)} {{ {nameof(Model)} = {Model}, {nameof(JudgeModel)} = {JudgeModel}, "
         + $"{nameof(BaseUrl)} = {BaseUrl}, {nameof(ApiKey)} = {(string.IsNullOrWhiteSpace(ApiKey) ? "(unset)" : "(set)")}, "
         + $"{nameof(LiveModelEnabled)} = {LiveModelEnabled}, {nameof(ExecutionName)} = {ExecutionName} }}";
 }
