@@ -20,7 +20,7 @@ namespace Agents.Evals.Infrastructure;
 /// <see cref="EvalEnvironment"/> for the providers that feed it and the order they are layered in.
 /// </para>
 /// </remarks>
-public sealed record EvalOptions
+public sealed record EvaluationOptions
 {
     /// <summary>
     /// The configuration section these bind from, so an environment variable spells out as
@@ -155,7 +155,7 @@ public sealed record EvalOptions
     /// test log. This prints what identifies a run and says only whether the key is present.
     /// </remarks>
     public override string ToString() =>
-        $"{nameof(EvalOptions)} {{ {nameof(Model)} = {Model}, {nameof(JudgeModel)} = {JudgeModel}, "
+        $"{nameof(EvaluationOptions)} {{ {nameof(Model)} = {Model}, {nameof(JudgeModel)} = {JudgeModel}, "
         + $"{nameof(BaseUrl)} = {BaseUrl}, {nameof(ApiKey)} = {(string.IsNullOrWhiteSpace(ApiKey) ? "(unset)" : "(set)")}, "
         + $"{nameof(LiveModelEnabled)} = {LiveModelEnabled}, {nameof(ExecutionName)} = {ExecutionName} }}";
 }

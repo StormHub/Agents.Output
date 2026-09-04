@@ -13,7 +13,7 @@ namespace Agents.Evals.Infrastructure;
 /// <remarks>
 /// <para>
 /// Both suites need a real chat client pointed at the deployment under test, and both would
-/// otherwise restate the same three steps: project <see cref="EvalOptions"/> onto
+/// otherwise restate the same three steps: project <see cref="EvaluationOptions"/> onto
 /// <c>AgentChatOptions</c>, run production's registration, resolve. Doing it here once means the
 /// suites measure the client the API builds — same transport, same options — rather than a
 /// lookalike assembled per suite that could drift from it or from each other.
@@ -72,7 +72,7 @@ public sealed class EvaluationSetup : IAsyncDisposable
 
     /// <summary>
     /// Builds (or reuses, within this fixture) a container wired to <paramref name="model"/> at
-    /// <see cref="EvalOptions.BaseUrl"/>.
+    /// <see cref="EvaluationOptions.BaseUrl"/>.
     /// </summary>
     /// <param name="model">The deployment to point at — the system under test, or a judge.</param>
     /// <param name="withProductionTools">

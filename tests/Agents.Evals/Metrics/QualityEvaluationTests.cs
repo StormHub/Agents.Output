@@ -39,7 +39,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
 
     /// <summary>
     /// Grades each answer on relevance, coherence, fluency, groundedness and tool use, against the
-    /// floor in <see cref="EvalOptions.QualityFloor"/>.
+    /// floor in <see cref="EvaluationOptions.QualityFloor"/>.
     /// </summary>
     [Fact]
     public async Task Answers_ClearTheQualityFloor()
