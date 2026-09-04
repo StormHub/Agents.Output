@@ -40,17 +40,15 @@ internal static class EvalAgentFactory
     /// Open-Meteo for real.
     /// </summary>
     /// <param name="setup">
-    /// The suite's <see cref="EvaluationSetup"/> fixture, which owns the container the agent comes out
-    /// of and disposes it when the test class is done — so the caller keeps the agent for the test
-    /// and disposes nothing.
+    /// The suite's <see cref="EvaluationSetup"/> fixture, which owns the container the agent comes
+    /// out of and disposes it when the test class is done — so the caller keeps the agent for the
+    /// test and disposes nothing.
     /// </param>
     /// <remarks>
-    /// Unlike the sibling suite this asks for the production tools, because what it measures is
-    /// whether the agent routes to them correctly — a stub would make the tool call succeed for
-    /// reasons the API would not enjoy.
+    /// The agent comes out of the container with production's tools attached, because what this
+    /// suite measures is whether it routes to them correctly — a stub would make the tool call
+    /// succeed for reasons the API would not enjoy.
     /// </remarks>
     public static ChatClientAgent CreateLive(EvaluationSetup setup) =>
-        setup
-            .ForLiveModel(EvaluationEnvironment.Current.Model, withProductionTools: true)
-            .GetRequiredService<ChatClientAgent>();
+        setup.Services.GetRequiredService<ChatClientAgent>();
 }

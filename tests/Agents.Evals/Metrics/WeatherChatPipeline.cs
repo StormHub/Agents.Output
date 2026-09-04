@@ -102,5 +102,5 @@ internal static class WeatherChatPipeline
     /// <see cref="StubWeatherTools"/> rather than production's.
     /// </remarks>
     private static IChatClient ResolveChatClient(EvaluationSetup setup, string model) =>
-        setup.ForLiveModel(model).GetRequiredKeyedService<IChatClient>(model);
+        setup.Services.GetRequiredKeyedService<IChatClient>(model);
 }
