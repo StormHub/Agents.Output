@@ -95,8 +95,9 @@ public sealed class EvaluationSetup : IAsyncDisposable
         if (string.IsNullOrWhiteSpace(EvalEnvironment.Current.ApiKey))
         {
             throw new InvalidOperationException(
-                $"No API key for {EvalEnvironment.Current.BaseUrl}. Set Eval__ApiKey, either as an "
-                + "environment variable or with `dotnet user-secrets set Eval:ApiKey \"...\" "
+                $"No API key for {EvalEnvironment.Current.BaseUrl}. Set EvaluationOptions__ApiKey, "
+                + "either as an environment variable or with "
+                + "`dotnet user-secrets set EvaluationOptions:ApiKey \"...\" "
                 + "--project tests/Agents.Evals.Infrastructure`.");
         }
 

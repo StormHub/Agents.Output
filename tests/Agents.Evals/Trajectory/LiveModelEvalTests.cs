@@ -17,9 +17,9 @@ namespace Agents.Evals.Trajectory;
 /// </para>
 /// <para>
 /// Every run writes a report, and that report — not the red/green — is the point. Set
-/// <c>Eval__LiveModelEnabled=true</c> with Ollama running to enable, <c>Eval__SampleSize</c> to
-/// change the sample. A full run makes several hundred model calls, so this belongs on a schedule rather
-/// than on every pull request.
+/// <c>EvaluationOptions__LiveModelEnabled=true</c> with Ollama running to enable,
+/// <c>EvaluationOptions__SampleSize</c> to change the sample. A full run makes several hundred
+/// model calls, so this belongs on a schedule rather than on every pull request.
 /// </para>
 /// <para>
 /// The live agent is composed by the <see cref="EvaluationSetup"/> class fixture: one container for
@@ -30,7 +30,8 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
     : IClassFixture<EvaluationSetup>
 {
     private const string SkipReason =
-        "Live model evaluation is off. Set Eval__LiveModelEnabled=true with api configurations to enable it.";
+        "Live model evaluation is off. Set EvaluationOptions__LiveModelEnabled=true with api "
+        + "configurations to enable it.";
 
     /// <summary>
     /// What each check has to clear.

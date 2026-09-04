@@ -11,17 +11,17 @@ namespace Agents.Evals.Infrastructure;
 /// <remarks>
 /// <para>
 /// Sources are layered lowest → highest precedence: the <see cref="Defaults"/> table, then User
-/// Secrets (local-only, opt-in via <c>dotnet user-secrets set Eval:ApiKey &lt;VALUE&gt;</c>), then
-/// environment variables. The endpoint this repository points at is Azure OpenAI, which needs an
-/// API key, and a key does not belong in shell history or in source control — User Secrets is where
-/// it goes. Environment variables still win, so CI and scripted invocations behave the way an
-/// operator expects.
+/// Secrets (local-only, opt-in via <c>dotnet user-secrets set EvaluationOptions:ApiKey
+/// &lt;VALUE&gt;</c>), then environment variables. The endpoint this repository points at is Azure
+/// OpenAI, which needs an API key, and a key does not belong in shell history or in source
+/// control — User Secrets is where it goes. Environment variables still win, so CI and scripted
+/// invocations behave the way an operator expects.
 /// </para>
 /// <para>
 /// Every value is defined by <see cref="EvaluationOptions"/> and defaulted by
 /// <see cref="Defaults"/>. The environment is a provider feeding that section under the standard
-/// <c>Eval__Knob</c> spelling, not a parallel set of knobs — so a value has one name, one type and
-/// one default whichever way it arrives.
+/// <c>EvaluationOptions__Knob</c> spelling, not a parallel set of knobs — so a value has one name,
+/// one type and one default whichever way it arrives.
 /// </para>
 /// <para>
 /// Because the secrets store belongs to <em>this</em> assembly, one
@@ -76,7 +76,7 @@ public static class EvalEnvironment
 
     /// <summary>
     /// Layers <paramref name="source"/> over the <see cref="Defaults"/>, binds the
-    /// <see cref="EvaluationOptions.SectionName"/> section and validates the result.
+    /// <see cref="EvaluationOptions"/> section and validates the result.
     /// </summary>
     /// <param name="source">
     /// Where the operator's values come from — User Secrets and the environment.
@@ -92,7 +92,7 @@ public static class EvalEnvironment
             .AddInMemoryCollection(Defaults)
             .AddConfiguration(source)
             .Build()
-            .GetSection(EvaluationOptions.SectionName)
+            .GetSection(nameof(EvaluationOptions))
             .Get<EvaluationOptions>() ?? new EvaluationOptions();
 
         // The judge follows the deployment under test unless it is named, and has to follow the
@@ -126,7 +126,7 @@ public static class EvalEnvironment
         }
 
         throw new OptionsValidationException(
-            EvaluationOptions.SectionName,
+            nameof(EvaluationOptions),
             typeof(EvaluationOptions),
             failures.Select(Describe));
     }
@@ -141,9 +141,9 @@ public static class EvalEnvironment
 
         return member is null
             ? failure.ErrorMessage ?? $"{nameof(EvaluationOptions)} is invalid."
-            : $"{failure.ErrorMessage} Set {EvaluationOptions.SectionName}__{member} (or {Key(member)} in user secrets).";
+            : $"{failure.ErrorMessage} Set {nameof(EvaluationOptions)}__{member} (or {Key(member)} in user secrets).";
     }
 
-    /// <summary>The configuration key a knob binds from, e.g. <c>Eval:Model</c>.</summary>
-    private static string Key(string name) => $"{EvaluationOptions.SectionName}:{name}";
+    /// <summary>The configuration key a knob binds from, e.g. <c>EvaluationOptions:Model</c>.</summary>
+    private static string Key(string name) => $"{nameof(EvaluationOptions)}:{name}";
 }

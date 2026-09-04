@@ -28,12 +28,12 @@ dotnet run --project tests/Agents.Extensions.Evals      # is the answer relevant
 dotnet run --project tests/Agents.Evals.Infrastructure  # is the gate arithmetic itself correct?
 ```
 
-The two suites skip their live tiers unless `Eval__LiveModelEnabled=true` is set, so an unconfigured
-run is offline, deterministic and free. They share their scenarios, scripted client, canned tools,
-`EvaluationOptions` configuration and rate/gate arithmetic through `tests/Agents.Evals.Infrastructure` —
-including one User Secrets store, so
-`dotnet user-secrets set Eval:ApiKey "..." --project tests/Agents.Evals.Infrastructure` configures
-the live tiers of both.
+The two suites skip their live tiers unless `EvaluationOptions__LiveModelEnabled=true` is set, so an
+unconfigured run is offline, deterministic and free. They share their scenarios, scripted client,
+canned tools, `EvaluationOptions` configuration and rate/gate arithmetic through
+`tests/Agents.Evals.Infrastructure` — including one User Secrets store, so
+`dotnet user-secrets set EvaluationOptions:ApiKey "..." --project tests/Agents.Evals.Infrastructure`
+configures the live tiers of both.
 
 What each suite keeps to itself is the policy: which checks exist and what floor each has to clear.
 The shared project knows how to judge a rate against a floor; it does not know a single floor.

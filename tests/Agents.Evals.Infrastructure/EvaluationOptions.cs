@@ -19,19 +19,20 @@ namespace Agents.Evals.Infrastructure;
 /// the environment is one <em>source</em> of these values rather than their definition. See
 /// <see cref="EvalEnvironment"/> for the providers that feed it and the order they are layered in.
 /// </para>
+/// <para>
+/// The section is named for the type — <c>nameof(EvaluationOptions)</c>, the same way
+/// <c>Agents.Api</c> binds its own <c>AgentChatOptions</c> — so an environment variable spells out
+/// as <c>EvaluationOptions__Model</c> and a user secret as <c>EvaluationOptions:Model</c>. Naming
+/// it from the type rather than a string constant means renaming the type renames the section with
+/// it, and nothing can drift.
+/// </para>
 /// </remarks>
 public sealed record EvaluationOptions
 {
     /// <summary>
-    /// The configuration section these bind from, so an environment variable spells out as
-    /// <c>Eval__Model</c> and a user secret as <c>Eval:Model</c>.
-    /// </summary>
-    public const string SectionName = "Eval";
-
-    /// <summary>
-    /// Whether the tiers that call a real model are enabled. Set <c>Eval__LiveModelEnabled=true</c>
-    /// with a reachable endpoint and an API key to opt in; without it they skip, so CI stays
-    /// offline and free.
+    /// Whether the tiers that call a real model are enabled. Set
+    /// <c>EvaluationOptions__LiveModelEnabled=true</c> with a reachable endpoint and an API key to
+    /// opt in; without it they skip, so CI stays offline and free.
     /// </summary>
     public bool LiveModelEnabled { get; init; }
 
@@ -42,8 +43,8 @@ public sealed record EvaluationOptions
     /// <summary>
     /// The deployment that grades, where a suite uses a judge. Left unset it follows
     /// <see cref="Model"/>, which is the cheapest setup and the weakest one — a judge that shares
-    /// the system's blind spots will not see them. Set <c>Eval__JudgeModel</c> to something stronger
-    /// once the scores start mattering.
+    /// the system's blind spots will not see them. Set <c>EvaluationOptions__JudgeModel</c> to
+    /// something stronger once the scores start mattering.
     /// </summary>
     /// <remarks>
     /// Defaulted in <see cref="EvalEnvironment"/> after binding rather than in the defaults table,
@@ -105,9 +106,9 @@ public sealed record EvaluationOptions
     /// <summary>Where the MEAI result store lives. Point <c>dotnet aieval report</c> at this.</summary>
     /// <remarks>
     /// The default sits beside the running test binary, under <c>bin/</c>, which is awkward to point
-    /// a tool at — so every test prints the absolute path it used. Set <c>Eval__StorageRoot</c> to
-    /// somewhere stable to accumulate history, and to the same directory for both suites to gather
-    /// them into one report.
+    /// a tool at — so every test prints the absolute path it used. Set
+    /// <c>EvaluationOptions__StorageRoot</c> to somewhere stable to accumulate history, and to the
+    /// same directory for both suites to gather them into one report.
     /// </remarks>
     [Required]
     public string StorageRoot { get; init; } = string.Empty;
@@ -137,8 +138,8 @@ public sealed record EvaluationOptions
 
     /// <summary>
     /// Which report format(s) <see cref="EvalReport.WriteAsync"/> emits. Set
-    /// <c>Eval__ReportFormat</c> to <c>GateSummary</c>, <c>Json</c>, <c>Html</c>, or any
-    /// comma-separated combination; defaults to <c>All</c>.
+    /// <c>EvaluationOptions__ReportFormat</c> to <c>GateSummary</c>, <c>Json</c>, <c>Html</c>, or
+    /// any comma-separated combination; defaults to <c>All</c>.
     /// </summary>
     /// <remarks>
     /// Binding this as the flags enum itself, rather than parsing a string by hand, is what makes a
