@@ -22,8 +22,16 @@ namespace Agents.Evals.Metrics;
 /// Set <c>Eval__LiveModelEnabled=true</c> with an endpoint and key configured to enable. Judge
 /// responses are cached, so re-running an unchanged scenario costs nothing.
 /// </para>
+/// <para>
+/// The pipeline and the judge both come from the <see cref="EvalServices"/> class fixture, which
+/// builds a container per deployment and disposes them — and every client resolved from them — once
+/// the last test in this class has run. Nothing here disposes a client of its own: the two point at
+/// the same deployment by default, and a test that tore its client down would take the connection
+/// pool the next one reuses with it.
+/// </para>
 /// </remarks>
-public sealed class QualityEvaluationTests(ITestOutputHelper output)
+public sealed class QualityEvaluationTests(ITestOutputHelper output, EvalServices services)
+    : IClassFixture<EvalServices>
 {
     private const string SkipReason =
         "Live model evaluation is off. Set Eval__LiveModelEnabled=true, with Eval__BaseUrl and "
@@ -40,8 +48,8 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output)
 
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        using var judgeClient = WeatherChatPipeline.CreateJudge();
-        using var client = WeatherChatPipeline.CreateLive();
+        var judgeClient = WeatherChatPipeline.CreateJudge(services);
+        var client = WeatherChatPipeline.CreateLive(services);
 
         var reporting = EvaluationReporting.ForQualityChecks(new ChatConfiguration(judgeClient));
 
@@ -99,8 +107,8 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output)
 
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        using var judgeClient = WeatherChatPipeline.CreateJudge();
-        using var client = WeatherChatPipeline.CreateLive();
+        var judgeClient = WeatherChatPipeline.CreateJudge(services);
+        var client = WeatherChatPipeline.CreateLive(services);
 
         var reporting = EvaluationReporting.ForEquivalenceChecks(new ChatConfiguration(judgeClient));
 

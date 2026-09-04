@@ -52,8 +52,13 @@ internal static class WeatherChatPipeline
             .Build();
 
     /// <summary>The pipeline over the live deployment. Calls Azure OpenAI for real.</summary>
-    public static IChatClient CreateLive() =>
-        ResolveChatClient(EvalEnvironment.Current.Model)
+    /// <param name="services">
+    /// The suite's <see cref="EvalServices"/> fixture, which owns the container this is built over
+    /// and disposes the chat client underneath when the test class is done — so the caller disposes
+    /// nothing, and the function-invocation wrapper holds no resource of its own.
+    /// </param>
+    public static IChatClient CreateLive(EvalServices services) =>
+        ResolveChatClient(services, EvalEnvironment.Current.Model)
             .AsBuilder()
             .UseFunctionInvocation()
             .Build();
@@ -62,7 +67,12 @@ internal static class WeatherChatPipeline
     /// The deployment that grades. No function invocation: the judge is asked to score text, never
     /// to call tools.
     /// </summary>
-    public static IChatClient CreateJudge() => ResolveChatClient(EvalEnvironment.Current.JudgeModel);
+    /// <param name="services">
+    /// The suite's <see cref="EvalServices"/> fixture. The judge is taken straight out of the
+    /// container, so the fixture disposes it; the caller does not.
+    /// </param>
+    public static IChatClient CreateJudge(EvalServices services) =>
+        ResolveChatClient(services, EvalEnvironment.Current.JudgeModel);
 
     /// <summary>
     /// Runs one query and returns both halves an evaluator needs: the conversation that produced
@@ -91,6 +101,6 @@ internal static class WeatherChatPipeline
     /// suite evaluates the layer beneath the agent, and the tools it registers are
     /// <see cref="StubWeatherTools"/> rather than production's.
     /// </remarks>
-    private static IChatClient ResolveChatClient(string model) =>
-        EvalServices.ForLiveModel(model).GetRequiredKeyedService<IChatClient>(model);
+    private static IChatClient ResolveChatClient(EvalServices services, string model) =>
+        services.ForLiveModel(model).GetRequiredKeyedService<IChatClient>(model);
 }

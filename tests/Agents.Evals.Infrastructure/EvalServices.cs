@@ -7,7 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Agents.Evals.Infrastructure;
 
 /// <summary>
-/// Composes the live system under evaluation out of <c>Agents.Api</c>'s own DI registrations.
+/// Class fixture composing the live system under evaluation out of <c>Agents.Api</c>'s own DI
+/// registrations, and owning it for the lifetime of the test class that asks for it.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -18,39 +19,76 @@ namespace Agents.Evals.Infrastructure;
 /// lookalike assembled per suite that could drift from it or from each other.
 /// </para>
 /// <para>
-/// What each suite pulls out of the provider differs, which is why this returns the provider rather
-/// than a client: <c>Agents.Api.Evals</c> resolves the <c>ChatClientAgent</c>,
-/// <c>Agents.Extensions.Evals</c> resolves the keyed <c>IChatClient</c> underneath it.
+/// What each suite pulls out of the container differs, which is why this returns the provider rather
+/// than a client: the trajectory suite resolves the <c>ChatClientAgent</c>, the metrics suite
+/// resolves the keyed <c>IChatClient</c> underneath it.
+/// </para>
+/// <para>
+/// Take it as a class fixture — <c>IClassFixture&lt;EvalServices&gt;</c> — and let it hand out the
+/// containers:
+/// </para>
+/// <code>
+/// public sealed class MyEvalTests(EvalServices services) : IClassFixture&lt;EvalServices&gt;
+/// {
+///     [Fact]
+///     public async Task Measures()
+///     {
+///         var agent = services.ForLiveModel(EvalEnvironment.Current.Model).GetRequiredService&lt;ChatClientAgent&gt;();
+///         // ...
+///     }
+/// }
+/// </code>
+/// <para>
+/// The containers are built inside the fixture and disposed with it, once the last test in the
+/// class has run. That scoping is the point: a container held statically for the life of the test
+/// process outlives every suite that used it, keeps its sockets and its
+/// <see cref="IHttpClientFactory"/> alive long after the measurements are over, and leaves a failed
+/// run's state visible to the next one. Per class, the deployment a suite talks to is set up and
+/// torn down with that suite, and nothing a suite builds leaks into another.
+/// </para>
+/// <para>
+/// The cost of that scoping is that two test classes pointed at the same deployment each build their
+/// own container and their own connection pool. That is a handful of extra handshakes against an
+/// endpoint the suites are about to make hundreds of model calls to — a rounding error next to
+/// knowing when the thing is disposed.
 /// </para>
 /// </remarks>
-public static class EvalServices
+public sealed class EvalServices : IAsyncDisposable
 {
     /// <summary>
-    /// One provider per (deployment, tool choice), kept for the life of the test process.
+    /// One container per (deployment, tool choice), for the life of the fixture.
     /// </summary>
     /// <remarks>
-    /// The provider owns the <see cref="IHttpClientFactory"/> behind the chat client, so it has to
-    /// outlive every client resolved from it. Caching it also lets the judge and the system under
-    /// test share a connection pool when they point at the same deployment. A failed build is not
-    /// cached: <see cref="ConcurrentDictionary{TKey,TValue}.GetOrAdd(TKey, Func{TKey, TValue})"/>
-    /// does not store an entry when the factory throws, so a run that failed on a missing key can
-    /// be retried in-process once it is set.
+    /// A single class routinely needs more than one: the metrics suite points the system under test
+    /// and the judge at different deployments, and reuse within the class lets them share a
+    /// connection pool when those deployments are the same. A failed build is not cached:
+    /// <see cref="ConcurrentDictionary{TKey,TValue}.GetOrAdd(TKey, Func{TKey, TValue})"/> does not
+    /// store an entry when the factory throws, so a run that failed on a missing key can be retried
+    /// once it is set.
     /// </remarks>
-    private static readonly ConcurrentDictionary<(string Model, bool WithProductionTools), ServiceProvider> Providers = new();
+    private readonly ConcurrentDictionary<(string Model, bool WithProductionTools), ServiceProvider> _providers = new();
+
+    private bool _disposed;
 
     /// <summary>
-    /// Builds (or reuses) a provider wired to <paramref name="model"/> at
+    /// Builds (or reuses, within this fixture) a container wired to <paramref name="model"/> at
     /// <see cref="EvalOptions.BaseUrl"/>.
     /// </summary>
     /// <param name="model">The deployment to point at — the system under test, or a judge.</param>
     /// <param name="withProductionTools">
     /// <see langword="true"/> registers the real <c>CalendarDay</c> and <c>WeatherForecast</c>
     /// tools, which call Open-Meteo. <see langword="false"/> — the default — leaves the tool
-    /// collection empty so the caller can supply <see cref="StubWeatherTools"/> instead and keep the
-    /// readings fixed and knowable.
+    /// collection empty so the caller can supply stubbed tools instead and keep the readings fixed
+    /// and knowable.
     /// </param>
-    public static IServiceProvider ForLiveModel(string model, bool withProductionTools = false)
+    /// <returns>
+    /// A container owned by this fixture. Everything resolved from it is disposed when the fixture
+    /// is, so a caller should not dispose what it resolves.
+    /// </returns>
+    public IServiceProvider ForLiveModel(string model, bool withProductionTools = false)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         // The production registration rejects a blank key, but from inside Agents.Api the message
         // names AgentChatOptions — a setting nobody configures when running a suite. Say which knob
         // to turn instead.
@@ -62,7 +100,7 @@ public static class EvalServices
                 + "--project tests/Agents.Evals.Infrastructure`.");
         }
 
-        return Providers.GetOrAdd((model, withProductionTools), static key =>
+        return _providers.GetOrAdd((model, withProductionTools), static key =>
         {
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(
@@ -86,5 +124,32 @@ public static class EvalServices
 
             return services.BuildServiceProvider();
         });
+    }
+
+    /// <summary>
+    /// Disposes every container this fixture built, and with them every chat client and agent
+    /// resolved from one.
+    /// </summary>
+    /// <remarks>
+    /// Asynchronous because a container's own teardown is: the chat clients underneath it are
+    /// registered as transients, so the provider tracks each one it handed out and releases them
+    /// here — through <see cref="IAsyncDisposable"/> where a service offers it. xUnit awaits this
+    /// after the last test in the class has finished.
+    /// </remarks>
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        foreach (var provider in _providers.Values)
+        {
+            await provider.DisposeAsync().ConfigureAwait(false);
+        }
+
+        _providers.Clear();
     }
 }
