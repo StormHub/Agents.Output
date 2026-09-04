@@ -167,7 +167,7 @@ public static class EvalReport
         EvalReportFormat format = EvalReportFormat.All,
         CancellationToken cancellationToken = default)
     {
-        var directory = EvalEnvironment.Current.ReportDirectory;
+        var directory = EvaluationEnvironment.Current.ReportDirectory;
         Directory.CreateDirectory(directory);
 
         var stamp = DateTimeOffset.UtcNow;

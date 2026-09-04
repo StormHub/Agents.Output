@@ -58,7 +58,7 @@ internal static class WeatherChatPipeline
     /// nothing, and the function-invocation wrapper holds no resource of its own.
     /// </param>
     public static IChatClient CreateLive(EvaluationSetup setup) =>
-        ResolveChatClient(setup, EvalEnvironment.Current.Model)
+        ResolveChatClient(setup, EvaluationEnvironment.Current.Model)
             .AsBuilder()
             .UseFunctionInvocation()
             .Build();
@@ -72,7 +72,7 @@ internal static class WeatherChatPipeline
     /// container, so the fixture disposes it; the caller does not.
     /// </param>
     public static IChatClient CreateJudge(EvaluationSetup setup) =>
-        ResolveChatClient(setup, EvalEnvironment.Current.JudgeModel);
+        ResolveChatClient(setup, EvaluationEnvironment.Current.JudgeModel);
 
     /// <summary>
     /// Runs one query and returns both halves an evaluator needs: the conversation that produced

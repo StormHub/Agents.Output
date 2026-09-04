@@ -45,7 +45,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
     [Fact]
     public async Task Answers_ClearTheQualityFloor()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -69,7 +69,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
             // tool call, so say plainly what happened before the evaluator's diagnostic does.
             Assert.True(
                 response.Messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Any(),
-                $"{EvalEnvironment.Current.Model} answered \"{scenario.Query}\" without calling a tool, so there is nothing to grade.");
+                $"{EvaluationEnvironment.Current.Model} answered \"{scenario.Query}\" without calling a tool, so there is nothing to grade.");
 
             var result = await scenarioRun.EvaluateAsync(
                 messages,
@@ -104,7 +104,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
     [Fact]
     public async Task Answers_MatchTheReferenceAnswer()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var cancellationToken = TestContext.Current.CancellationToken;
 

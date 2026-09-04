@@ -17,7 +17,8 @@ namespace Agents.Evals.Infrastructure;
 /// <para>
 /// This is a plain options class bound from an <c>IConfiguration</c> section the standard way, so
 /// the environment is one <em>source</em> of these values rather than their definition. See
-/// <see cref="EvalEnvironment"/> for the providers that feed it and the order they are layered in.
+/// <see cref="EvaluationEnvironment"/> for the providers that feed it and the order they are
+/// layered in.
 /// </para>
 /// <para>
 /// The section is named for the type — <c>nameof(EvaluationOptions)</c>, the same way
@@ -47,8 +48,9 @@ public sealed record EvaluationOptions
     /// something stronger once the scores start mattering.
     /// </summary>
     /// <remarks>
-    /// Defaulted in <see cref="EvalEnvironment"/> after binding rather than in the defaults table,
-    /// because it has to follow a <see cref="Model"/> the operator overrode, not the one shipped.
+    /// Defaulted in <see cref="EvaluationEnvironment"/> after binding rather than in the defaults
+    /// table, because it has to follow a <see cref="Model"/> the operator overrode, not the one
+    /// shipped.
     /// </remarks>
     [Required]
     public string JudgeModel { get; init; } = string.Empty;

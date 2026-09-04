@@ -29,7 +29,7 @@ namespace Agents.Evals.Infrastructure;
 /// suites rather than each needing its own copy of the same key.
 /// </para>
 /// </remarks>
-public static class EvalEnvironment
+public static class EvaluationEnvironment
 {
     /// <summary>
     /// The default deployment and endpoint, matching <c>Agents.Api</c>'s own
@@ -113,7 +113,7 @@ public static class EvalEnvironment
     /// </remarks>
     private static IConfiguration BuildOperatorConfiguration() =>
         new ConfigurationBuilder()
-            .AddUserSecrets(typeof(EvalEnvironment).Assembly, optional: true)
+            .AddUserSecrets(typeof(EvaluationEnvironment).Assembly, optional: true)
             .AddEnvironmentVariables()
             .Build();
 

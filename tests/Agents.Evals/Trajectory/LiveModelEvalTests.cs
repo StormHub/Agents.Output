@@ -64,7 +64,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
     [Fact]
     public async Task WeatherQueries_ClearTheirFloors()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -86,7 +86,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
     [Fact]
     public async Task DateRelativeQueries_AreGroundedOnTheCalendarTool()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -126,7 +126,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
     [Fact]
     public async Task OverallConsistency_IsRecorded()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var outcome = await MeasureAsync(
             "overall-consistency",
@@ -156,7 +156,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
             queries,
             evaluator,
             evalName: scenario,
-            numRepetitions: EvalEnvironment.Current.SampleSize);
+            numRepetitions: EvaluationEnvironment.Current.SampleSize);
 
         var rates = EvalRates.PerCheck(results);
         var outcome = EvalGate.Evaluate(rates, effectiveFloors);
@@ -168,10 +168,10 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
             outcome,
             results,
             effectiveFloors,
-            EvalEnvironment.Current.Model,
-            EvalEnvironment.Current.ReportFormat);
+            EvaluationEnvironment.Current.Model,
+            EvaluationEnvironment.Current.ReportFormat);
 
-        output.WriteLine($"{scenario} — {results.Total} runs of {EvalEnvironment.Current.Model}");
+        output.WriteLine($"{scenario} — {results.Total} runs of {EvaluationEnvironment.Current.Model}");
         output.WriteLine(outcome.Report());
         output.WriteLine($"Reports: {string.Join(", ", paths)}");
 
