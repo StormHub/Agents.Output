@@ -22,12 +22,12 @@ namespace Agents.Evals.Trajectory;
 /// than on every pull request.
 /// </para>
 /// <para>
-/// The live agent is composed by the <see cref="EvalServices"/> class fixture: one container for
+/// The live agent is composed by the <see cref="EvaluationSetup"/> class fixture: one container for
 /// this class, built on the first measurement and disposed once the last one has run.
 /// </para>
 /// </remarks>
-public sealed class LiveModelEvalTests(ITestOutputHelper output, EvalServices services)
-    : IClassFixture<EvalServices>
+public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup setup)
+    : IClassFixture<EvaluationSetup>
 {
     private const string SkipReason =
         "Live model evaluation is off. Set Eval__LiveModelEnabled=true with api configurations to enable it.";
@@ -149,7 +149,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvalServices se
         IReadOnlyDictionary<string, CheckFloor>? floors = null)
     {
         var effectiveFloors = floors ?? Floors;
-        var agent = EvalAgentFactory.CreateLive(services);
+        var agent = EvalAgentFactory.CreateLive(setup);
 
         var results = await agent.EvaluateAsync(
             queries,

@@ -39,8 +39,8 @@ internal static class EvalAgentFactory
     /// Resolves the real agent through the production DI registrations. Calls the model and
     /// Open-Meteo for real.
     /// </summary>
-    /// <param name="services">
-    /// The suite's <see cref="EvalServices"/> fixture, which owns the container the agent comes out
+    /// <param name="setup">
+    /// The suite's <see cref="EvaluationSetup"/> fixture, which owns the container the agent comes out
     /// of and disposes it when the test class is done — so the caller keeps the agent for the test
     /// and disposes nothing.
     /// </param>
@@ -49,8 +49,8 @@ internal static class EvalAgentFactory
     /// whether the agent routes to them correctly — a stub would make the tool call succeed for
     /// reasons the API would not enjoy.
     /// </remarks>
-    public static ChatClientAgent CreateLive(EvalServices services) =>
-        services
+    public static ChatClientAgent CreateLive(EvaluationSetup setup) =>
+        setup
             .ForLiveModel(EvalEnvironment.Current.Model, withProductionTools: true)
             .GetRequiredService<ChatClientAgent>();
 }

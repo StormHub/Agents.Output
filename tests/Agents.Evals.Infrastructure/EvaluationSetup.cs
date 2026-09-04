@@ -24,16 +24,16 @@ namespace Agents.Evals.Infrastructure;
 /// resolves the keyed <c>IChatClient</c> underneath it.
 /// </para>
 /// <para>
-/// Take it as a class fixture — <c>IClassFixture&lt;EvalServices&gt;</c> — and let it hand out the
+/// Take it as a class fixture — <c>IClassFixture&lt;EvaluationSetup&gt;</c> — and let it hand out the
 /// containers:
 /// </para>
 /// <code>
-/// public sealed class MyEvalTests(EvalServices services) : IClassFixture&lt;EvalServices&gt;
+/// public sealed class MyEvalTests(EvaluationSetup setup) : IClassFixture&lt;EvaluationSetup&gt;
 /// {
 ///     [Fact]
 ///     public async Task Measures()
 ///     {
-///         var agent = services.ForLiveModel(EvalEnvironment.Current.Model).GetRequiredService&lt;ChatClientAgent&gt;();
+///         var agent = setup.ForLiveModel(EvalEnvironment.Current.Model).GetRequiredService&lt;ChatClientAgent&gt;();
 ///         // ...
 ///     }
 /// }
@@ -53,7 +53,7 @@ namespace Agents.Evals.Infrastructure;
 /// knowing when the thing is disposed.
 /// </para>
 /// </remarks>
-public sealed class EvalServices : IAsyncDisposable
+public sealed class EvaluationSetup : IAsyncDisposable
 {
     /// <summary>
     /// One container per (deployment, tool choice), for the life of the fixture.
