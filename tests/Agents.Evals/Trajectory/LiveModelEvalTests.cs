@@ -33,7 +33,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output)
     /// <remarks>
     /// A floor of 1.0 declares an invariant — a failure is a defect, not noise, and no sampling
     /// argument excuses it. Everything else is a rate the agent is allowed to miss sometimes.
-    /// Deciding which is which is the whole judgement call; these are starting points to be moved
+    /// Deciding which is the whole judgement call; these are starting points to be moved
     /// once there is baseline data for the model in use.
     /// </remarks>
     private static readonly Dictionary<string, CheckFloor> Floors = new(StringComparer.Ordinal)

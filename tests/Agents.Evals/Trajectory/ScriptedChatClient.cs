@@ -15,7 +15,7 @@ namespace Agents.Evals.Trajectory;
 /// first tool call not already present in the conversation, and falls through to the scripted
 /// answer once every scripted tool has been called.
 /// </remarks>
-public sealed class ScriptedChatClient(params WeatherScenario[] scenarios) : IChatClient
+internal sealed class ScriptedChatClient(params WeatherScenario[] scenarios) : IChatClient
 {
     private readonly IReadOnlyList<WeatherScenario> _scenarios = scenarios;
 
