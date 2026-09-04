@@ -39,32 +39,54 @@ namespace Agents.Evals.Infrastructure;
 /// }
 /// </code>
 /// <para>
-/// One container, built inside the fixture and disposed with it once the last test in the class
-/// has run. That scoping is the point: a container held statically for the life of the test process
-/// outlives every suite that used it, keeps its sockets and its <see cref="IHttpClientFactory"/>
-/// alive long after the measurements are over, and leaves a failed run's state visible to the next
-/// one. Per class, the deployment a suite talks to is set up and torn down with that suite, and
-/// nothing a suite builds leaks into another.
+/// One container, built by the fixture's constructor and disposed with it once the last test in
+/// the class has run. That scoping is the point: a container held statically for the life of the
+/// test process outlives every suite that used it, keeps its sockets and its
+/// <see cref="IHttpClientFactory"/> alive long after the measurements are over, and leaves a
+/// failed run's state visible to the next one. Per class, the deployment a suite talks to is set
+/// up and torn down with that suite, and nothing a suite builds leaks into another.
 /// </para>
 /// </remarks>
 public sealed class EvaluationSetup : IAsyncDisposable
 {
-    private ServiceProvider? _container;
+    private readonly ServiceProvider? _container;
 
     /// <summary>
-    /// The container, built on first use and reused for the rest of the test class.
+    /// Composes the system under evaluation, once, for the test class about to measure it.
     /// </summary>
     /// <remarks>
-    /// Built lazily rather than in the constructor because xUnit creates the fixture before it
-    /// knows whether any test in the class will run: composing the system needs an API key, and
-    /// the common case — the offline tiers, and every run in CI — has none and skips. A fixture
-    /// that built eagerly would turn those skips into errors.
+    /// Only when the live tiers are on. xUnit builds the fixture before it knows whether any test
+    /// in the class will run, and composing the system needs an API key that an offline run does
+    /// not have — so <see cref="EvaluationOptions.LiveModelEnabled"/> decides, the same knob the
+    /// suites skip on. Without it a run that means to skip would fail in the constructor instead.
+    /// A live run with no key still throws here, which is where it should: before a measurement
+    /// starts rather than partway through one.
     /// </remarks>
+    public EvaluationSetup()
+    {
+        if (EvaluationEnvironment.Current.LiveModelEnabled)
+        {
+            _container = Build();
+        }
+    }
+
+    /// <summary>
+    /// The container the constructor composed.
+    /// </summary>
     /// <value>
     /// A container owned by this fixture. Everything resolved from it is disposed when the fixture
     /// is, so a caller should not dispose what it resolves.
     /// </value>
-    public IServiceProvider Services => _container ??= Build();
+    /// <exception cref="InvalidOperationException">
+    /// The live tiers are off, so there is no system to measure. A suite reaches this only by
+    /// asking for the container without skipping first.
+    /// </exception>
+    public IServiceProvider Services =>
+        _container
+        ?? throw new InvalidOperationException(
+            "Live model evaluation is off, so no system was composed. Set "
+            + "EvaluationOptions__LiveModelEnabled=true to enable it, or skip the test when it is "
+            + "not set.");
 
     /// <summary>
     /// Disposes the container, and with it every chat client and agent resolved from it.
@@ -73,13 +95,13 @@ public sealed class EvaluationSetup : IAsyncDisposable
     /// Asynchronous because the container's own teardown is: the chat clients underneath it are
     /// registered as transients, so it tracks each one it handed out and releases them here —
     /// through <see cref="IAsyncDisposable"/> where a service offers it. xUnit awaits this after
-    /// the last test in the class has finished, and there is nothing to do when no test ever asked
-    /// for the container.
+    /// the last test in the class has finished, and there is nothing to do in a run that composed
+    /// no system.
     /// </remarks>
     public ValueTask DisposeAsync() => _container?.DisposeAsync() ?? ValueTask.CompletedTask;
 
     /// <summary>
-    /// Composes the system under evaluation, and the judge beside it, from production's own
+    /// Composes the system under evaluation, and the judge beside it, out of production's own
     /// registrations.
     /// </summary>
     /// <remarks>
