@@ -3,7 +3,6 @@ using Agents.Evals.Infrastructure;
 using Agents.Evals.Scenarios;
 using Agents.Evals.Trajectory;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Agents.Evals.Metrics;
 
@@ -96,11 +95,11 @@ internal static class WeatherChatPipeline
     /// </summary>
     /// <remarks>
     /// <see cref="EvaluationSetup"/> composes it exactly as <c>Agents.Api</c> does, so the suite
-    /// measures the client the API builds — same transport, same options. Only the keyed
-    /// <see cref="IChatClient"/> is taken, not the <c>ChatClientAgent</c> wrapped around it: this
-    /// suite evaluates the layer beneath the agent, and the tools it registers are
-    /// <see cref="StubWeatherTools"/> rather than production's.
+    /// measures the client the API builds — same transport, same options. Only the chat client is
+    /// taken, not the <c>ChatClientAgent</c> wrapped around it: this suite evaluates the layer
+    /// beneath the agent, and the tools it drives the model with are <see cref="StubWeatherTools"/>
+    /// rather than production's.
     /// </remarks>
     private static IChatClient ResolveChatClient(EvaluationSetup setup, string model) =>
-        setup.Services.GetRequiredKeyedService<IChatClient>(model);
+        setup.ResolveChatClient(model);
 }

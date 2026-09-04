@@ -66,8 +66,9 @@ public sealed record EvaluationOptions
     /// </summary>
     /// <remarks>
     /// Not <see cref="RequiredAttribute"/>: the offline tiers are the common case and the only case
-    /// in CI, and they never call an endpoint. <see cref="EvaluationSetup.Services"/> is where a
-    /// missing key becomes an error, because that is the first point at which it matters.
+    /// in CI, and they never call an endpoint. <see cref="EvaluationSetup"/> turns a missing key
+    /// into an error the first time a suite asks it for the system, because that is the first
+    /// point at which it matters.
     /// </remarks>
     public string? ApiKey { get; init; }
 

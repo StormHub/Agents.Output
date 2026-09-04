@@ -3,7 +3,6 @@ using Agents.Evals.Infrastructure;
 using Agents.Evals.Scenarios;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Agents.Evals.Trajectory;
 
@@ -49,6 +48,5 @@ internal static class EvalAgentFactory
     /// suite measures is whether it routes to them correctly — a stub would make the tool call
     /// succeed for reasons the API would not enjoy.
     /// </remarks>
-    public static ChatClientAgent CreateLive(EvaluationSetup setup) =>
-        setup.Services.GetRequiredService<ChatClientAgent>();
+    public static ChatClientAgent CreateLive(EvaluationSetup setup) => setup.ResolveAgent();
 }
