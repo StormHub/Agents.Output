@@ -13,9 +13,9 @@ namespace Agents.Evals.Trajectory;
 /// </summary>
 /// <remarks>
 /// The fixtures and the endpoint configuration live in <c>Agents.Evals.Infrastructure</c>, shared
-/// with <c>Agents.Extensions.Evals</c>. What stays here is the one thing that is specific to this
-/// suite: producing a <see cref="ChatClientAgent"/> — the Agent Framework object this suite
-/// measures — rather than the <c>IChatClient</c> underneath it.
+/// with the <c>Metrics</c> suite. What stays here is the one thing that is specific to this suite:
+/// producing a <see cref="ChatClientAgent"/> — the Agent Framework object this suite measures —
+/// rather than the <c>IChatClient</c> underneath it.
 /// </remarks>
 internal static class EvalAgentFactory
 {
@@ -51,6 +51,6 @@ internal static class EvalAgentFactory
     /// </remarks>
     public static ChatClientAgent CreateLive(EvaluationSetup setup) =>
         setup
-            .ForLiveModel(EvalEnvironment.Current.Model, withProductionTools: true)
+            .ForLiveModel(EvaluationEnvironment.Current.Model, withProductionTools: true)
             .GetRequiredService<ChatClientAgent>();
 }

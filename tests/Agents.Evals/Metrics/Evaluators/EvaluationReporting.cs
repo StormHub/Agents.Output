@@ -35,7 +35,7 @@ internal static class EvaluationReporting
     /// </summary>
     public static ReportingConfiguration ForOfflineChecks() =>
         DiskBasedReportingConfiguration.Create(
-            storageRootPath: EvalEnvironment.Current.StorageRoot,
+            storageRootPath: EvaluationEnvironment.Current.StorageRoot,
             evaluators:
             [
                 new BLEUEvaluator(),
@@ -45,7 +45,7 @@ internal static class EvaluationReporting
             ],
             chatConfiguration: null,
             enableResponseCaching: false,
-            executionName: EvalEnvironment.Current.ExecutionName,
+            executionName: EvaluationEnvironment.Current.ExecutionName,
             evaluationMetricInterpreter: Interpret,
             tags: ["suite:extensions-evals", "tier:offline"]);
 
@@ -59,7 +59,7 @@ internal static class EvaluationReporting
     /// </remarks>
     public static ReportingConfiguration ForQualityChecks(ChatConfiguration judge) =>
         DiskBasedReportingConfiguration.Create(
-            storageRootPath: EvalEnvironment.Current.StorageRoot,
+            storageRootPath: EvaluationEnvironment.Current.StorageRoot,
             evaluators:
             [
                 new RelevanceEvaluator(),
@@ -71,16 +71,16 @@ internal static class EvaluationReporting
             ],
             chatConfiguration: judge,
             enableResponseCaching: true,
-            timeToLiveForCacheEntries: EvalEnvironment.Current.CacheTimeToLive,
-            cachingKeys: [EvalEnvironment.Current.JudgeModel],
-            executionName: EvalEnvironment.Current.ExecutionName,
+            timeToLiveForCacheEntries: EvaluationEnvironment.Current.CacheTimeToLive,
+            cachingKeys: [EvaluationEnvironment.Current.JudgeModel],
+            executionName: EvaluationEnvironment.Current.ExecutionName,
             evaluationMetricInterpreter: Interpret,
             tags:
             [
                 "suite:extensions-evals",
                 "tier:quality",
-                $"model:{EvalEnvironment.Current.Model}",
-                $"judge:{EvalEnvironment.Current.JudgeModel}",
+                $"model:{EvaluationEnvironment.Current.Model}",
+                $"judge:{EvaluationEnvironment.Current.JudgeModel}",
             ]);
 
     /// <summary>
@@ -89,20 +89,20 @@ internal static class EvaluationReporting
     /// </summary>
     public static ReportingConfiguration ForEquivalenceChecks(ChatConfiguration judge) =>
         DiskBasedReportingConfiguration.Create(
-            storageRootPath: EvalEnvironment.Current.StorageRoot,
+            storageRootPath: EvaluationEnvironment.Current.StorageRoot,
             evaluators: [new EquivalenceEvaluator(), new CompletenessEvaluator()],
             chatConfiguration: judge,
             enableResponseCaching: true,
-            timeToLiveForCacheEntries: EvalEnvironment.Current.CacheTimeToLive,
-            cachingKeys: [EvalEnvironment.Current.JudgeModel],
-            executionName: EvalEnvironment.Current.ExecutionName,
+            timeToLiveForCacheEntries: EvaluationEnvironment.Current.CacheTimeToLive,
+            cachingKeys: [EvaluationEnvironment.Current.JudgeModel],
+            executionName: EvaluationEnvironment.Current.ExecutionName,
             evaluationMetricInterpreter: Interpret,
             tags:
             [
                 "suite:extensions-evals",
                 "tier:equivalence",
-                $"model:{EvalEnvironment.Current.Model}",
-                $"judge:{EvalEnvironment.Current.JudgeModel}",
+                $"model:{EvaluationEnvironment.Current.Model}",
+                $"judge:{EvaluationEnvironment.Current.JudgeModel}",
             ]);
 
     /// <summary>
@@ -112,7 +112,7 @@ internal static class EvaluationReporting
     /// </summary>
     public static ReportingConfiguration ForSafetyChecks(ChatConfiguration contentSafety) =>
         DiskBasedReportingConfiguration.Create(
-            storageRootPath: EvalEnvironment.Current.StorageRoot,
+            storageRootPath: EvaluationEnvironment.Current.StorageRoot,
             evaluators:
             [
                 new HateAndUnfairnessEvaluator(),
@@ -123,10 +123,10 @@ internal static class EvaluationReporting
             ],
             chatConfiguration: contentSafety,
             enableResponseCaching: true,
-            timeToLiveForCacheEntries: EvalEnvironment.Current.CacheTimeToLive,
-            executionName: EvalEnvironment.Current.ExecutionName,
+            timeToLiveForCacheEntries: EvaluationEnvironment.Current.CacheTimeToLive,
+            executionName: EvaluationEnvironment.Current.ExecutionName,
             evaluationMetricInterpreter: Interpret,
-            tags: ["suite:extensions-evals", "tier:safety", $"model:{EvalEnvironment.Current.Model}"]);
+            tags: ["suite:extensions-evals", "tier:safety", $"model:{EvaluationEnvironment.Current.Model}"]);
 
     /// <summary>Prints every metric in a result, so a red run is readable from the test log.</summary>
     public static void Report(ITestOutputHelper output, string scenarioName, EvaluationResult result)
@@ -158,7 +158,7 @@ internal static class EvaluationReporting
             }
         }
 
-        output.WriteLine($"  store: {EvalEnvironment.Current.StorageRoot} (execution {EvalEnvironment.Current.ExecutionName})");
+        output.WriteLine($"  store: {EvaluationEnvironment.Current.StorageRoot} (execution {EvaluationEnvironment.Current.ExecutionName})");
     }
 
     /// <summary>Fails the test if any metric was interpreted as a failure.</summary>
@@ -226,7 +226,7 @@ internal static class EvaluationReporting
             _ => EvaluationRating.Unacceptable,
         };
 
-        var floor = EvalEnvironment.Current.QualityFloor;
+        var floor = EvaluationEnvironment.Current.QualityFloor;
 
         return score < floor
             ? new EvaluationMetricInterpretation(

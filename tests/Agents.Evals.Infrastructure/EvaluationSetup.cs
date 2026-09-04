@@ -33,7 +33,8 @@ namespace Agents.Evals.Infrastructure;
 ///     [Fact]
 ///     public async Task Measures()
 ///     {
-///         var agent = setup.ForLiveModel(EvalEnvironment.Current.Model).GetRequiredService&lt;ChatClientAgent&gt;();
+///         var agent = setup.ForLiveModel(EvaluationEnvironment.Current.Model)
+///             .GetRequiredService&lt;ChatClientAgent&gt;();
 ///         // ...
 ///     }
 /// }
@@ -92,11 +93,12 @@ public sealed class EvaluationSetup : IAsyncDisposable
         // The production registration rejects a blank key, but from inside Agents.Api the message
         // names AgentChatOptions — a setting nobody configures when running a suite. Say which knob
         // to turn instead.
-        if (string.IsNullOrWhiteSpace(EvalEnvironment.Current.ApiKey))
+        if (string.IsNullOrWhiteSpace(EvaluationEnvironment.Current.ApiKey))
         {
             throw new InvalidOperationException(
-                $"No API key for {EvalEnvironment.Current.BaseUrl}. Set Eval__ApiKey, either as an "
-                + "environment variable or with `dotnet user-secrets set Eval:ApiKey \"...\" "
+                $"No API key for {EvaluationEnvironment.Current.BaseUrl}. "
+                + "Set EvaluationOptions__ApiKey, either as an environment variable or with "
+                + "`dotnet user-secrets set EvaluationOptions:ApiKey \"...\" "
                 + "--project tests/Agents.Evals.Infrastructure`.");
         }
 
@@ -107,8 +109,8 @@ public sealed class EvaluationSetup : IAsyncDisposable
                     new Dictionary<string, string?>
                     {
                         ["AgentChatOptions:Model"] = key.Model,
-                        ["AgentChatOptions:BaseUrl"] = EvalEnvironment.Current.BaseUrl,
-                        ["AgentChatOptions:ApiKey"] = EvalEnvironment.Current.ApiKey,
+                        ["AgentChatOptions:BaseUrl"] = EvaluationEnvironment.Current.BaseUrl,
+                        ["AgentChatOptions:ApiKey"] = EvaluationEnvironment.Current.ApiKey,
                     })
                 .Build();
 

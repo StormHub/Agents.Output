@@ -17,9 +17,9 @@ namespace Agents.Evals.Trajectory;
 /// </para>
 /// <para>
 /// Every run writes a report, and that report — not the red/green — is the point. Set
-/// <c>Eval__LiveModelEnabled=true</c> with Ollama running to enable, <c>Eval__SampleSize</c> to
-/// change the sample. A full run makes several hundred model calls, so this belongs on a schedule rather
-/// than on every pull request.
+/// <c>EvaluationOptions__LiveModelEnabled=true</c>, with an endpoint and key configured, to enable;
+/// <c>EvaluationOptions__SampleSize</c> to change the sample. A full run makes several hundred
+/// model calls, so this belongs on a schedule rather than on every pull request.
 /// </para>
 /// <para>
 /// The live agent is composed by the <see cref="EvaluationSetup"/> class fixture: one container for
@@ -30,7 +30,8 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
     : IClassFixture<EvaluationSetup>
 {
     private const string SkipReason =
-        "Live model evaluation is off. Set Eval__LiveModelEnabled=true with api configurations to enable it.";
+        "Live model evaluation is off. Set EvaluationOptions__LiveModelEnabled=true with api "
+        + "configurations to enable it.";
 
     /// <summary>
     /// What each check has to clear.
@@ -63,7 +64,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
     [Fact]
     public async Task WeatherQueries_ClearTheirFloors()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -85,7 +86,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
     [Fact]
     public async Task DateRelativeQueries_AreGroundedOnTheCalendarTool()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         string[] queries =
         [
@@ -125,7 +126,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
     [Fact]
     public async Task OverallConsistency_IsRecorded()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var outcome = await MeasureAsync(
             "overall-consistency",
@@ -155,7 +156,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
             queries,
             evaluator,
             evalName: scenario,
-            numRepetitions: EvalEnvironment.Current.SampleSize);
+            numRepetitions: EvaluationEnvironment.Current.SampleSize);
 
         var rates = EvalRates.PerCheck(results);
         var outcome = EvalGate.Evaluate(rates, effectiveFloors);
@@ -167,10 +168,10 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
             outcome,
             results,
             effectiveFloors,
-            EvalEnvironment.Current.Model,
-            EvalEnvironment.Current.ReportFormat);
+            EvaluationEnvironment.Current.Model,
+            EvaluationEnvironment.Current.ReportFormat);
 
-        output.WriteLine($"{scenario} — {results.Total} runs of {EvalEnvironment.Current.Model}");
+        output.WriteLine($"{scenario} — {results.Total} runs of {EvaluationEnvironment.Current.Model}");
         output.WriteLine(outcome.Report());
         output.WriteLine($"Reports: {string.Join(", ", paths)}");
 

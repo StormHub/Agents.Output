@@ -14,8 +14,8 @@ namespace Agents.Evals.Metrics;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is not the Agent Framework agent that <c>Agents.Api</c> hosts, and it is not what
-/// <c>Agents.Api.Evals</c> measures. It is the layer underneath: the instructions are production's
+/// This is not the Agent Framework agent that <c>Agents.Api</c> hosts, and it is not what the
+/// <c>Trajectory</c> suite measures. It is the layer underneath: the instructions are production's
 /// and the chat client is built by production's own DI registration, driven through MEAI's
 /// abstractions, because that is the shape the <c>Microsoft.Extensions.AI.Evaluation</c> libraries
 /// evaluate — they take <see cref="ChatMessage"/>s and a <see cref="ChatResponse"/> and know
@@ -58,7 +58,7 @@ internal static class WeatherChatPipeline
     /// nothing, and the function-invocation wrapper holds no resource of its own.
     /// </param>
     public static IChatClient CreateLive(EvaluationSetup setup) =>
-        ResolveChatClient(setup, EvalEnvironment.Current.Model)
+        ResolveChatClient(setup, EvaluationEnvironment.Current.Model)
             .AsBuilder()
             .UseFunctionInvocation()
             .Build();
@@ -72,7 +72,7 @@ internal static class WeatherChatPipeline
     /// container, so the fixture disposes it; the caller does not.
     /// </param>
     public static IChatClient CreateJudge(EvaluationSetup setup) =>
-        ResolveChatClient(setup, EvalEnvironment.Current.JudgeModel);
+        ResolveChatClient(setup, EvaluationEnvironment.Current.JudgeModel);
 
     /// <summary>
     /// Runs one query and returns both halves an evaluator needs: the conversation that produced

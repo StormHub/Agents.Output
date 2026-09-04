@@ -19,8 +19,8 @@ namespace Agents.Evals.Metrics;
 /// stayed inside what the tools returned, whether the tool call actually served the request.
 /// </para>
 /// <para>
-/// Set <c>Eval__LiveModelEnabled=true</c> with an endpoint and key configured to enable. Judge
-/// responses are cached, so re-running an unchanged scenario costs nothing.
+/// Set <c>EvaluationOptions__LiveModelEnabled=true</c> with an endpoint and key configured to
+/// enable. Judge responses are cached, so re-running an unchanged scenario costs nothing.
 /// </para>
 /// <para>
 /// The pipeline and the judge both come from the <see cref="EvaluationSetup"/> class fixture, which
@@ -34,8 +34,9 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
     : IClassFixture<EvaluationSetup>
 {
     private const string SkipReason =
-        "Live model evaluation is off. Set Eval__LiveModelEnabled=true, with Eval__BaseUrl and "
-        + "Eval__ApiKey pointing at a reachable deployment, to enable it.";
+        "Live model evaluation is off. Set EvaluationOptions__LiveModelEnabled=true, with "
+        + "EvaluationOptions__BaseUrl and EvaluationOptions__ApiKey pointing at a reachable "
+        + "deployment, to enable it.";
 
     /// <summary>
     /// Grades each answer on relevance, coherence, fluency, groundedness and tool use, against the
@@ -44,7 +45,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
     [Fact]
     public async Task Answers_ClearTheQualityFloor()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -68,7 +69,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
             // tool call, so say plainly what happened before the evaluator's diagnostic does.
             Assert.True(
                 response.Messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Any(),
-                $"{EvalEnvironment.Current.Model} answered \"{scenario.Query}\" without calling a tool, so there is nothing to grade.");
+                $"{EvaluationEnvironment.Current.Model} answered \"{scenario.Query}\" without calling a tool, so there is nothing to grade.");
 
             var result = await scenarioRun.EvaluateAsync(
                 messages,
@@ -103,7 +104,7 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
     [Fact]
     public async Task Answers_MatchTheReferenceAnswer()
     {
-        Assert.SkipUnless(EvalEnvironment.Current.LiveModelEnabled, SkipReason);
+        Assert.SkipUnless(EvaluationEnvironment.Current.LiveModelEnabled, SkipReason);
 
         var cancellationToken = TestContext.Current.CancellationToken;
 

@@ -20,8 +20,8 @@ public sealed record ScriptedToolCall(string Name, IDictionary<string, object?>?
 /// <param name="ToolCalls">Tool calls to emit, one per model turn, in order.</param>
 /// <param name="ScriptedAnswer">Assistant text the scripted client produces after the last tool result.</param>
 /// <param name="References">
-/// Answers a correct run should resemble, for the reference-based evaluators in
-/// <c>Agents.Extensions.Evals</c>. The first entry is the primary one: it is the single ground truth
+/// Answers a correct run should resemble, for the reference-based evaluators in the <c>Metrics</c>
+/// suite. The first entry is the primary one: it is the single ground truth
 /// handed to <c>F1</c>, <c>Equivalence</c> and <c>Completeness</c>, which take exactly one, and it
 /// is also the only one <c>GLEU</c> sees. Keep it equal to <paramref name="ScriptedAnswer"/> unless
 /// you mean to measure the wording itself.
