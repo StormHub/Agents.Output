@@ -1,15 +1,13 @@
 using Agents.Api.Options;
 using Agents.Api.Tools;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Agents.Evals.Infrastructure;
 
 /// <summary>
-/// Class fixture composing the live system under evaluation out of <c>Agents.Api</c>'s own DI
-/// registrations, and owning it for the lifetime of the test class that asks for it.
+/// Class fixture holding the registrations that compose the live system under evaluation, out of
+/// <c>Agents.Api</c>'s own DI.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -20,41 +18,39 @@ namespace Agents.Evals.Infrastructure;
 /// lookalike assembled per suite that could drift from it or from each other.
 /// </para>
 /// <para>
-/// The container stays inside. What a suite gets is what it measures — the
-/// <see cref="ChatClientAgent"/> for the trajectory suite, the <see cref="IChatClient"/> underneath
-/// it for the metrics suite — never the provider they came out of. Handing back a provider would
-/// let a suite resolve anything, dispose what it does not own, and measure a system this fixture
-/// never composed.
-/// </para>
-/// <para>
-/// Take it as a class fixture — <c>IClassFixture&lt;EvaluationSetup&gt;</c> — and ask it for what
-/// you measure:
+/// This is the setup, not the container: it owns a <see cref="ServiceCollection"/> and nothing
+/// else. <see cref="Build"/> hands a caller its own container, and the caller owns it from there —
+/// which is why this fixture is not disposable. A test class builds one in its constructor and
+/// disposes it when it is done, so the sockets and the <see cref="IHttpClientFactory"/> behind a
+/// measurement live exactly as long as the test that made it, and no run inherits the state of the
+/// one before it.
 /// </para>
 /// <code>
-/// public sealed class MyEvalTests(EvaluationSetup setup) : IClassFixture&lt;EvaluationSetup&gt;
+/// public sealed class MyEvalTests(EvaluationSetup setup)
+///     : IClassFixture&lt;EvaluationSetup&gt;, IAsyncDisposable
 /// {
+///     private readonly ServiceProvider _provider = setup.Build();
+///
+///     public ValueTask DisposeAsync() => _provider.DisposeAsync();
+///
 ///     [Fact]
 ///     public async Task Measures()
 ///     {
-///         var agent = setup.ResolveAgent();
+///         var agent = _provider.GetRequiredService&lt;ChatClientAgent&gt;();
 ///         // ...
 ///     }
 /// }
 /// </code>
 /// <para>
-/// One container per test class, disposed with the fixture once the last test has run. That
-/// scoping is the point: a container held statically for the life of the test process outlives
-/// every suite that used it, keeps its sockets and its <see cref="IHttpClientFactory"/> alive long
-/// after the measurements are over, and leaves a failed run's state visible to the next one. Per
-/// class, the deployment a suite talks to is set up and torn down with that suite, and nothing a
-/// suite builds leaks into another.
+/// What each suite pulls out of its container differs, which is why <see cref="Build"/> returns the
+/// container rather than a client: the trajectory suite resolves the <c>ChatClientAgent</c>, the
+/// metrics suite the keyed <c>IChatClient</c> underneath it and, where a judge is configured
+/// separately, a second keyed client beside it.
 /// </para>
 /// </remarks>
-public sealed class EvaluationSetup : IAsyncDisposable
+public sealed class EvaluationSetup
 {
     private readonly ServiceCollection _services = new();
-
-    private ServiceProvider? _provider;
 
     /// <summary>
     /// Registers the system under evaluation, and the judge beside it, out of production's own
@@ -70,23 +66,39 @@ public sealed class EvaluationSetup : IAsyncDisposable
     /// the other's tools.
     /// </para>
     /// <para>
-    /// Everything but the key is settled here, up front. The key is the exception because
-    /// production's registration rejects a blank one where it is registered rather than where it is
-    /// used, and xUnit builds this fixture before it knows whether any test in the class will run:
-    /// the common case — the offline tiers, and every run in CI — has no key and skips. A run
-    /// without one therefore registers nothing and says so if a test asks anyway, rather than
-    /// failing every test in the class from a constructor.
+    /// Nothing is registered at all when the live tiers are off. xUnit builds this fixture, and the
+    /// test class that holds it, before either can skip — so an offline run, which is the common
+    /// case and the only case in CI, has to be able to build an empty container and skip quietly
+    /// rather than fail a whole class from a constructor.
     /// </para>
     /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// The live tiers are on with no API key. Production's registration rejects a blank key where
+    /// it is registered rather than where it is used, so this is the first point the suites can
+    /// say which knob to turn — and saying it here fails the class that asked for a live run,
+    /// rather than the offline runs that never wanted one.
+    /// </exception>
     public EvaluationSetup()
     {
         var options = EvaluationEnvironment.Current;
 
         _services.AddLogging();
 
-        if (string.IsNullOrWhiteSpace(options.ApiKey))
+        if (!options.LiveModelEnabled)
         {
             return;
+        }
+
+        // The production registration rejects a blank key, but from inside Agents.Api the message
+        // names AgentChatOptions — a setting nobody configures when running a suite. Say which knob
+        // to turn instead.
+        if (string.IsNullOrWhiteSpace(options.ApiKey))
+        {
+            throw new InvalidOperationException(
+                $"No API key for {options.BaseUrl}. "
+                + "Set EvaluationOptions__ApiKey, either as an environment variable or with "
+                + "`dotnet user-secrets set EvaluationOptions:ApiKey \"...\" "
+                + "--project tests/Agents.Evals.Infrastructure`.");
         }
 
         _services.AddTools();
@@ -94,9 +106,9 @@ public sealed class EvaluationSetup : IAsyncDisposable
         // A judge pointed at its own deployment needs its own keyed client, which is what a second
         // pass over the registration adds. It goes first so the system under test is the last
         // AgentChatOptions registered: that singleton is the one production's ChatClientAgent
-        // resolves, and the agent this fixture hands out has to be the deployment under evaluation,
-        // never the one grading it. Skipped when the judge follows the model — the default — where
-        // one keyed client already serves both.
+        // resolves, and the agent a suite measures has to be the deployment under evaluation, never
+        // the one grading it. Skipped when the judge follows the model — the default — where one
+        // keyed client already serves both.
         if (!string.Equals(options.JudgeModel, options.Model, StringComparison.Ordinal))
         {
             _services.AddWeatherChatAgent(Project(options, options.JudgeModel));
@@ -106,72 +118,14 @@ public sealed class EvaluationSetup : IAsyncDisposable
     }
 
     /// <summary>
-    /// The agent under evaluation: production's <see cref="ChatClientAgent"/>, with production's
-    /// tools, pointed at <see cref="EvaluationOptions.Model"/>.
-    /// </summary>
-    /// <returns>
-    /// An agent owned by this fixture and disposed with it, so the caller keeps it for the test and
-    /// disposes nothing.
-    /// </returns>
-    public ChatClientAgent ResolveAgent() => Provider.GetRequiredService<ChatClientAgent>();
-
-    /// <summary>
-    /// The chat client under that agent, for a suite measuring the layer beneath it.
-    /// </summary>
-    /// <param name="model">
-    /// The deployment to talk to: <see cref="EvaluationOptions.Model"/> for the system under test,
-    /// <see cref="EvaluationOptions.JudgeModel"/> for the one grading it.
-    /// </param>
-    /// <returns>
-    /// A client owned by this fixture and disposed with it, so the caller keeps it for the test and
-    /// disposes nothing.
-    /// </returns>
-    public IChatClient ResolveChatClient(string model) =>
-        Provider.GetRequiredKeyedService<IChatClient>(model);
-
-    /// <summary>
-    /// Disposes the container, and with it every chat client and agent resolved from it.
+    /// Builds a container from these registrations, for the caller to own and dispose.
     /// </summary>
     /// <remarks>
-    /// Asynchronous because the container's own teardown is: the chat clients underneath it are
-    /// registered as transients, so it tracks each one it handed out and releases them here —
-    /// through <see cref="IAsyncDisposable"/> where a service offers it. xUnit awaits this after
-    /// the last test in the class has finished, and there is nothing to do in a run that resolved
-    /// nothing.
+    /// One per test class instance — which xUnit creates per test — so a measurement's transport is
+    /// set up and torn down with the test that made it. Disposing the returned container releases
+    /// every chat client and agent resolved from it, so a test disposes that and nothing else.
     /// </remarks>
-    public ValueTask DisposeAsync() => _provider?.DisposeAsync() ?? ValueTask.CompletedTask;
-
-    /// <summary>
-    /// The container behind both resolutions, built the first time one is asked for.
-    /// </summary>
-    /// <remarks>
-    /// Building is what starts owning something — sockets, an
-    /// <see cref="IHttpClientFactory"/>, every transient it hands out — so it waits for a test that
-    /// wants the system rather than a class that merely declares the fixture. What it is built from
-    /// is not deferred: the constructor settled the registrations.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    /// There is no API key, so nothing was registered and there is no system to measure.
-    /// </exception>
-    private ServiceProvider Provider
-    {
-        get
-        {
-            // The production registration rejects a blank key, but from inside Agents.Api the
-            // message names AgentChatOptions — a setting nobody configures when running a suite.
-            // Say which knob to turn instead.
-            if (string.IsNullOrWhiteSpace(EvaluationEnvironment.Current.ApiKey))
-            {
-                throw new InvalidOperationException(
-                    $"No API key for {EvaluationEnvironment.Current.BaseUrl}. "
-                    + "Set EvaluationOptions__ApiKey, either as an environment variable or with "
-                    + "`dotnet user-secrets set EvaluationOptions:ApiKey \"...\" "
-                    + "--project tests/Agents.Evals.Infrastructure`.");
-            }
-
-            return _provider ??= _services.BuildServiceProvider();
-        }
-    }
+    public ServiceProvider Build() => _services.BuildServiceProvider();
 
     /// <summary>
     /// Projects <paramref name="options"/> onto the <c>AgentChatOptions</c> section production
