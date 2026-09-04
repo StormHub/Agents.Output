@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Agents.Api.Options;
 using Agents.Api.Tools;
 using Microsoft.Extensions.Configuration;
@@ -7,8 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Agents.Evals.Infrastructure;
 
 /// <summary>
-/// Class fixture composing the live system under evaluation out of <c>Agents.Api</c>'s own DI
-/// registrations, and owning it for the lifetime of the test class that asks for it.
+/// Class fixture holding the registrations that compose the live system under evaluation, out of
+/// <c>Agents.Api</c>'s own DI.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -19,139 +18,129 @@ namespace Agents.Evals.Infrastructure;
 /// lookalike assembled per suite that could drift from it or from each other.
 /// </para>
 /// <para>
-/// What each suite pulls out of the container differs, which is why this returns the provider rather
-/// than a client: the trajectory suite resolves the <c>ChatClientAgent</c>, the metrics suite
-/// resolves the keyed <c>IChatClient</c> underneath it.
-/// </para>
-/// <para>
-/// Take it as a class fixture — <c>IClassFixture&lt;EvaluationSetup&gt;</c> — and let it hand out the
-/// containers:
+/// This is the setup, not the container: it owns a <see cref="ServiceCollection"/> and nothing
+/// else. <see cref="Build"/> hands a caller its own container, and the caller owns it from there —
+/// which is why this fixture is not disposable. A test class builds one in its constructor and
+/// disposes it when it is done, so the sockets and the <see cref="IHttpClientFactory"/> behind a
+/// measurement live exactly as long as the test that made it, and no run inherits the state of the
+/// one before it.
 /// </para>
 /// <code>
-/// public sealed class MyEvalTests(EvaluationSetup setup) : IClassFixture&lt;EvaluationSetup&gt;
+/// public sealed class MyEvalTests(EvaluationSetup setup)
+///     : IClassFixture&lt;EvaluationSetup&gt;, IAsyncDisposable
 /// {
+///     private readonly ServiceProvider _provider = setup.Build();
+///
+///     public ValueTask DisposeAsync() => _provider.DisposeAsync();
+///
 ///     [Fact]
 ///     public async Task Measures()
 ///     {
-///         var agent = setup.ForLiveModel(EvaluationEnvironment.Current.Model)
-///             .GetRequiredService&lt;ChatClientAgent&gt;();
+///         var agent = _provider.GetRequiredService&lt;ChatClientAgent&gt;();
 ///         // ...
 ///     }
 /// }
 /// </code>
 /// <para>
-/// The containers are built inside the fixture and disposed with it, once the last test in the
-/// class has run. That scoping is the point: a container held statically for the life of the test
-/// process outlives every suite that used it, keeps its sockets and its
-/// <see cref="IHttpClientFactory"/> alive long after the measurements are over, and leaves a failed
-/// run's state visible to the next one. Per class, the deployment a suite talks to is set up and
-/// torn down with that suite, and nothing a suite builds leaks into another.
-/// </para>
-/// <para>
-/// The cost of that scoping is that two test classes pointed at the same deployment each build their
-/// own container and their own connection pool. That is a handful of extra handshakes against an
-/// endpoint the suites are about to make hundreds of model calls to — a rounding error next to
-/// knowing when the thing is disposed.
+/// What each suite pulls out of its container differs, which is why <see cref="Build"/> returns the
+/// container rather than a client: the trajectory suite resolves the <c>ChatClientAgent</c>, the
+/// metrics suite the keyed <c>IChatClient</c> underneath it and, where a judge is configured
+/// separately, a second keyed client beside it.
 /// </para>
 /// </remarks>
-public sealed class EvaluationSetup : IAsyncDisposable
+public sealed class EvaluationSetup
 {
+    private readonly ServiceCollection _services = new();
+
     /// <summary>
-    /// One container per (deployment, tool choice), for the life of the fixture.
+    /// Registers the system under evaluation, and the judge beside it, out of production's own
+    /// registrations.
     /// </summary>
     /// <remarks>
-    /// A single class routinely needs more than one: the metrics suite points the system under test
-    /// and the judge at different deployments, and reuse within the class lets them share a
-    /// connection pool when those deployments are the same. A failed build is not cached:
-    /// <see cref="ConcurrentDictionary{TKey,TValue}.GetOrAdd(TKey, Func{TKey, TValue})"/> does not
-    /// store an entry when the factory throws, so a run that failed on a missing key can be retried
-    /// once it is set.
+    /// <para>
+    /// The production tools are always registered. The trajectory suite measures whether the agent
+    /// routes to them, so it needs the real <c>CalendarDay</c> and <c>WeatherForecast</c>; the
+    /// metrics suite resolves only the chat client, which reads no <c>AITool</c> registration at
+    /// all — it hands its own stubbed tools to the model through <c>ChatOptions</c>, keeping the
+    /// readings fixed and knowable. So one set of registrations serves both without either seeing
+    /// the other's tools.
+    /// </para>
+    /// <para>
+    /// Nothing is registered at all when the live tiers are off. xUnit builds this fixture, and the
+    /// test class that holds it, before either can skip — so an offline run, which is the common
+    /// case and the only case in CI, has to be able to build an empty container and skip quietly
+    /// rather than fail a whole class from a constructor.
+    /// </para>
     /// </remarks>
-    private readonly ConcurrentDictionary<(string Model, bool WithProductionTools), ServiceProvider> _providers = new();
-
-    private bool _disposed;
-
-    /// <summary>
-    /// Builds (or reuses, within this fixture) a container wired to <paramref name="model"/> at
-    /// <see cref="EvaluationOptions.BaseUrl"/>.
-    /// </summary>
-    /// <param name="model">The deployment to point at — the system under test, or a judge.</param>
-    /// <param name="withProductionTools">
-    /// <see langword="true"/> registers the real <c>CalendarDay</c> and <c>WeatherForecast</c>
-    /// tools, which call Open-Meteo. <see langword="false"/> — the default — leaves the tool
-    /// collection empty so the caller can supply stubbed tools instead and keep the readings fixed
-    /// and knowable.
-    /// </param>
-    /// <returns>
-    /// A container owned by this fixture. Everything resolved from it is disposed when the fixture
-    /// is, so a caller should not dispose what it resolves.
-    /// </returns>
-    public IServiceProvider ForLiveModel(string model, bool withProductionTools = false)
+    /// <exception cref="InvalidOperationException">
+    /// The live tiers are on with no API key. Production's registration rejects a blank key where
+    /// it is registered rather than where it is used, so this is the first point the suites can
+    /// say which knob to turn — and saying it here fails the class that asked for a live run,
+    /// rather than the offline runs that never wanted one.
+    /// </exception>
+    public EvaluationSetup()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        var options = EvaluationEnvironment.Current;
+
+        _services.AddLogging();
+
+        if (!options.LiveModelEnabled)
+        {
+            return;
+        }
 
         // The production registration rejects a blank key, but from inside Agents.Api the message
         // names AgentChatOptions — a setting nobody configures when running a suite. Say which knob
         // to turn instead.
-        if (string.IsNullOrWhiteSpace(EvaluationEnvironment.Current.ApiKey))
+        if (string.IsNullOrWhiteSpace(options.ApiKey))
         {
             throw new InvalidOperationException(
-                $"No API key for {EvaluationEnvironment.Current.BaseUrl}. "
+                $"No API key for {options.BaseUrl}. "
                 + "Set EvaluationOptions__ApiKey, either as an environment variable or with "
                 + "`dotnet user-secrets set EvaluationOptions:ApiKey \"...\" "
                 + "--project tests/Agents.Evals.Infrastructure`.");
         }
 
-        return _providers.GetOrAdd((model, withProductionTools), static key =>
+        _services.AddTools();
+
+        // A judge pointed at its own deployment needs its own keyed client, which is what a second
+        // pass over the registration adds. It goes first so the system under test is the last
+        // AgentChatOptions registered: that singleton is the one production's ChatClientAgent
+        // resolves, and the agent a suite measures has to be the deployment under evaluation, never
+        // the one grading it. Skipped when the judge follows the model — the default — where one
+        // keyed client already serves both.
+        if (!string.Equals(options.JudgeModel, options.Model, StringComparison.Ordinal))
         {
-            var configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["AgentChatOptions:Model"] = key.Model,
-                        ["AgentChatOptions:BaseUrl"] = EvaluationEnvironment.Current.BaseUrl,
-                        ["AgentChatOptions:ApiKey"] = EvaluationEnvironment.Current.ApiKey,
-                    })
-                .Build();
+            _services.AddWeatherChatAgent(Project(options, options.JudgeModel));
+        }
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-
-            if (key.WithProductionTools)
-            {
-                services.AddTools();
-            }
-
-            services.AddWeatherChatAgent(configuration);
-
-            return services.BuildServiceProvider();
-        });
+        _services.AddWeatherChatAgent(Project(options, options.Model));
     }
 
     /// <summary>
-    /// Disposes every container this fixture built, and with them every chat client and agent
-    /// resolved from one.
+    /// Builds a container from these registrations, for the caller to own and dispose.
     /// </summary>
     /// <remarks>
-    /// Asynchronous because a container's own teardown is: the chat clients underneath it are
-    /// registered as transients, so the provider tracks each one it handed out and releases them
-    /// here — through <see cref="IAsyncDisposable"/> where a service offers it. xUnit awaits this
-    /// after the last test in the class has finished.
+    /// One per test class instance — which xUnit creates per test — so a measurement's transport is
+    /// set up and torn down with the test that made it. Disposing the returned container releases
+    /// every chat client and agent resolved from it, so a test disposes that and nothing else.
     /// </remarks>
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed)
-        {
-            return;
-        }
+    public ServiceProvider Build() => _services.BuildServiceProvider();
 
-        _disposed = true;
+    /// <summary>
+    /// Projects <paramref name="options"/> onto the <c>AgentChatOptions</c> section production
+    /// binds, pointed at <paramref name="model"/>.
+    /// </summary>
+    private static IConfiguration Project(EvaluationOptions options, string model) =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    [Key(nameof(AgentChatOptions.Model))] = model,
+                    [Key(nameof(AgentChatOptions.BaseUrl))] = options.BaseUrl,
+                    [Key(nameof(AgentChatOptions.ApiKey))] = options.ApiKey,
+                })
+            .Build();
 
-        foreach (var provider in _providers.Values)
-        {
-            await provider.DisposeAsync().ConfigureAwait(false);
-        }
-
-        _providers.Clear();
-    }
+    private static string Key(string name) => $"{nameof(AgentChatOptions)}:{name}";
 }

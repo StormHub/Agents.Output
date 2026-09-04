@@ -4,6 +4,7 @@ using Agents.Evals.Scenarios;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.AI.Evaluation;
 using Microsoft.Extensions.AI.Evaluation.Quality;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Agents.Evals.Metrics;
@@ -23,20 +24,22 @@ namespace Agents.Evals.Metrics;
 /// enable. Judge responses are cached, so re-running an unchanged scenario costs nothing.
 /// </para>
 /// <para>
-/// The pipeline and the judge both come from the <see cref="EvaluationSetup"/> class fixture, which
-/// builds a container per deployment and disposes them — and every client resolved from them — once
-/// the last test in this class has run. Nothing here disposes a client of its own: the two point at
-/// the same deployment by default, and a test that tore its client down would take the connection
-/// pool the next one reuses with it.
+/// The pipeline and the judge are both resolved from this class's own container, built in the
+/// constructor out of the <see cref="EvaluationSetup"/> fixture's registrations and disposed with
+/// the test. Nothing here disposes a client of its own: the container owns every one it hands out,
+/// and the two point at the same deployment by default, so a test that tore its client down would
+/// take the connection pool the other one reuses with it.
 /// </para>
 /// </remarks>
 public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationSetup setup)
-    : IClassFixture<EvaluationSetup>
+    : IClassFixture<EvaluationSetup>, IAsyncDisposable
 {
     private const string SkipReason =
         "Live model evaluation is off. Set EvaluationOptions__LiveModelEnabled=true, with "
         + "EvaluationOptions__BaseUrl and EvaluationOptions__ApiKey pointing at a reachable "
         + "deployment, to enable it.";
+
+    private readonly ServiceProvider _provider = setup.Build();
 
     /// <summary>
     /// Grades each answer on relevance, coherence, fluency, groundedness and tool use, against the
@@ -49,8 +52,8 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
 
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        var judgeClient = WeatherChatPipeline.CreateJudge(setup);
-        var client = WeatherChatPipeline.CreateLive(setup);
+        var judgeClient = WeatherChatPipeline.CreateJudge(_provider);
+        var client = WeatherChatPipeline.CreateLive(_provider);
 
         var reporting = EvaluationReporting.ForQualityChecks(new ChatConfiguration(judgeClient));
 
@@ -108,8 +111,8 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
 
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        var judgeClient = WeatherChatPipeline.CreateJudge(setup);
-        var client = WeatherChatPipeline.CreateLive(setup);
+        var judgeClient = WeatherChatPipeline.CreateJudge(_provider);
+        var client = WeatherChatPipeline.CreateLive(_provider);
 
         var reporting = EvaluationReporting.ForEquivalenceChecks(new ChatConfiguration(judgeClient));
 
@@ -141,4 +144,9 @@ public sealed class QualityEvaluationTests(ITestOutputHelper output, EvaluationS
             EvaluationReporting.AssertNoFailures(result);
         }
     }
+
+    /// <summary>
+    /// Disposes this test's container, and with it every client resolved from it.
+    /// </summary>
+    public ValueTask DisposeAsync() => _provider.DisposeAsync();
 }

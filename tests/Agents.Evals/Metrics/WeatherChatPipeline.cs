@@ -52,13 +52,13 @@ internal static class WeatherChatPipeline
             .Build();
 
     /// <summary>The pipeline over the live deployment. Calls Azure OpenAI for real.</summary>
-    /// <param name="setup">
-    /// The suite's <see cref="EvaluationSetup"/> fixture, which owns the container this is built over
-    /// and disposes the chat client underneath when the test class is done — so the caller disposes
-    /// nothing, and the function-invocation wrapper holds no resource of its own.
+    /// <param name="provider">
+    /// The container the test class built from <see cref="EvaluationSetup"/>. It owns the chat
+    /// client underneath and disposes it, so the caller disposes nothing and the
+    /// function-invocation wrapper holds no resource of its own.
     /// </param>
-    public static IChatClient CreateLive(EvaluationSetup setup) =>
-        ResolveChatClient(setup, EvaluationEnvironment.Current.Model)
+    public static IChatClient CreateLive(IServiceProvider provider) =>
+        ResolveChatClient(provider, EvaluationEnvironment.Current.Model)
             .AsBuilder()
             .UseFunctionInvocation()
             .Build();
@@ -67,12 +67,12 @@ internal static class WeatherChatPipeline
     /// The deployment that grades. No function invocation: the judge is asked to score text, never
     /// to call tools.
     /// </summary>
-    /// <param name="setup">
-    /// The suite's <see cref="EvaluationSetup"/> fixture. The judge is taken straight out of the
-    /// container, so the fixture disposes it; the caller does not.
+    /// <param name="provider">
+    /// The container the test class built from <see cref="EvaluationSetup"/>. The judge is taken
+    /// straight out of it, so the container disposes it; the caller does not.
     /// </param>
-    public static IChatClient CreateJudge(EvaluationSetup setup) =>
-        ResolveChatClient(setup, EvaluationEnvironment.Current.JudgeModel);
+    public static IChatClient CreateJudge(IServiceProvider provider) =>
+        ResolveChatClient(provider, EvaluationEnvironment.Current.JudgeModel);
 
     /// <summary>
     /// Runs one query and returns both halves an evaluator needs: the conversation that produced
@@ -96,11 +96,11 @@ internal static class WeatherChatPipeline
     /// </summary>
     /// <remarks>
     /// <see cref="EvaluationSetup"/> composes it exactly as <c>Agents.Api</c> does, so the suite
-    /// measures the client the API builds — same transport, same options. Only the keyed
-    /// <see cref="IChatClient"/> is taken, not the <c>ChatClientAgent</c> wrapped around it: this
-    /// suite evaluates the layer beneath the agent, and the tools it registers are
-    /// <see cref="StubWeatherTools"/> rather than production's.
+    /// measures the client the API builds — same transport, same options. Only the chat client is
+    /// taken, not the <c>ChatClientAgent</c> wrapped around it: this suite evaluates the layer
+    /// beneath the agent, and the tools it drives the model with are <see cref="StubWeatherTools"/>
+    /// rather than production's.
     /// </remarks>
-    private static IChatClient ResolveChatClient(EvaluationSetup setup, string model) =>
-        setup.ForLiveModel(model).GetRequiredKeyedService<IChatClient>(model);
+    private static IChatClient ResolveChatClient(IServiceProvider provider, string model) =>
+        provider.GetRequiredKeyedService<IChatClient>(model);
 }

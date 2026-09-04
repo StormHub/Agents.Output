@@ -1,6 +1,7 @@
 using Agents.Evals.Infrastructure;
 using Agents.Evals.Infrastructure.Probabilistic;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Agents.Evals.Trajectory;
@@ -22,12 +23,13 @@ namespace Agents.Evals.Trajectory;
 /// model calls, so this belongs on a schedule rather than on every pull request.
 /// </para>
 /// <para>
-/// The live agent is composed by the <see cref="EvaluationSetup"/> class fixture: one container for
-/// this class, built on the first measurement and disposed once the last one has run.
+/// The registrations come from the <see cref="EvaluationSetup"/> class fixture; the container is
+/// this class's own, built in the constructor and disposed when the test that built it ends, so a
+/// measurement's transport lives exactly as long as the measurement.
 /// </para>
 /// </remarks>
 public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup setup)
-    : IClassFixture<EvaluationSetup>
+    : IClassFixture<EvaluationSetup>, IAsyncDisposable
 {
     private const string SkipReason =
         "Live model evaluation is off. Set EvaluationOptions__LiveModelEnabled=true with api "
@@ -60,6 +62,8 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
             0.90,
             "Empty turns should be rare."),
     };
+
+    private readonly ServiceProvider _provider = setup.Build();
 
     [Fact]
     public async Task WeatherQueries_ClearTheirFloors()
@@ -150,7 +154,7 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
         IReadOnlyDictionary<string, CheckFloor>? floors = null)
     {
         var effectiveFloors = floors ?? Floors;
-        var agent = EvalAgentFactory.CreateLive(setup);
+        var agent = EvalAgentFactory.CreateLive(_provider);
 
         var results = await agent.EvaluateAsync(
             queries,
@@ -179,6 +183,11 @@ public sealed class LiveModelEvalTests(ITestOutputHelper output, EvaluationSetup
 
         return new MeasurementOutcome(outcome, EvalRates.Overall(results));
     }
+
+    /// <summary>
+    /// Disposes this test's container, and with it every client resolved from it.
+    /// </summary>
+    public ValueTask DisposeAsync() => _provider.DisposeAsync();
 
     private sealed record MeasurementOutcome(GateOutcome Gate, CheckRate Overall);
 }
